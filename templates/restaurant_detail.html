@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container mt-4">
+
+    <!-- INFORMAÇÕES DO RESTAURANTE -->
+    <div class="card shadow-lg mb-4 rounded-4">
+        <div class="card-body text-center">
+            <h2 class="mb-2">🍽 {{ restaurant.name }}</h2>
+            <p class="text-muted">{{ restaurant.description }}</p>
+        </div>
+    </div>
+
+    <div class="row">
+
+        <!-- PEDIDOS -->
+        <div class="col-md-6">
+            <div class="card shadow-sm mb-4 rounded-4">
+                <div class="card-header bg-primary text-white">
+                    🛒 Pedidos
+                </div>
+                <div class="card-body">
+
+                    <a class="btn btn-success btn-sm mb-3"
+                       href="{% url 'order_create' restaurant.id %}">
+                        + Novo Pedido
+                    </a>
+
+                    <ul class="list-group">
+                        {% for order in restaurant.order_set.all %}
+                            <li class="list-group-item">
+
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <strong>{{ order.customer.username }}</strong>
+
+                                        <ul class="mt-2">
+                                            {% for item in order.orderitem_set.all %}
+                                                <li>
+                                                    {{ item.menu_item.name }} 
+                                                    (x{{ item.quantity }})
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+
+                                        <strong>Total: R$ {{ order.total }}</strong>
+                                    </div>
+
+                                    <div>
+                                        <a class="btn btn-outline-danger btn-sm"
+                                           href="{% url 'order_delete' order.pk %}">
+                                            ❌ Excluir
+                                        </a>
+                                    </div>
+                                </div>
+
+                            </li>
+                        {% empty %}
+                            <li class="list-group-item text-muted text-center">
+                                Nenhum pedido realizado ainda.
+                            </li>
+                        {% endfor %}
+                    </ul>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- RESERVAS -->
+        <div class="col-md-6">
+            <div class="card shadow-sm mb-4 rounded-4">
+                <div class="card-header bg-warning text-dark">
+                    📅 Reservas
+                </div>
+                <div class="card-body">
+
+                    <a class="btn btn-success btn-sm mb-3"
+                       href="{% url 'reservation_create' restaurant.id %}">
+                        + Nova Reserva
+                    </a>
+
+                    <ul class="list-group">
+                        {% for reservation in restaurant.reservation_set.all %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ reservation.customer.username }}</strong>
+                                    <br>
+                                    {{ reservation.date }}
+                                </div>
+
+                                <a class="btn btn-outline-danger btn-sm"
+                                   href="{% url 'reservation_delete' reservation.pk %}">
+                                    ❌ Excluir
+                                </a>
+                            </li>
+                        {% empty %}
+                            <li class="list-group-item text-muted text-center">
+                                Nenhuma reserva realizada ainda.
+                            </li>
+                        {% endfor %}
+                    </ul>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="text-center">
+        <a class="btn btn-secondary px-4"
+           href="{% url 'restaurant_list' %}">
+           ← Voltar
+        </a>
+    </div>
+
+</div>
+
+{% endblock %}

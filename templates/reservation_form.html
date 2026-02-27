@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container mt-5">
+    <div class="card shadow-lg p-4 rounded-4">
+
+        <h2 class="text-center mb-4">📅 Fazer Reserva</h2>
+
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="mb-3">
+                {{ form.date.label_tag }}
+                {{ form.date }}
+            </div>
+
+            {% if form.time %}
+            <div class="mb-3">
+                {{ form.time.label_tag }}
+                {{ form.time }}
+            </div>
+            {% endif %}
+
+            {% if form.guests %}
+            <div class="mb-3">
+                {{ form.guests.label_tag }}
+                {{ form.guests }}
+            </div>
+            {% endif %}
+
+            <div class="text-center mt-4">
+                <button type="submit" class="btn btn-primary px-4">
+                    ✔ Confirmar Reserva
+                </button>
+
+                <a href="{% url 'restaurant_list' %}" 
+                   class="btn btn-outline-secondary px-4 ms-2">
+                    Cancelar
+                </a>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+{% endblock %}

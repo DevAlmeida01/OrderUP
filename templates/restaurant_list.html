@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+<style>
+/* HEADER */
+.page-header {
+    background: linear-gradient(135deg, #111, #2a2a2a);
+    color: white;
+    padding: 60px 0;
+    border-radius: 0 0 40px 40px;
+    margin-bottom: 50px;
+}
+
+.page-header h1 {
+    font-weight: 800;
+}
+
+/* CARD RESTAURANTE */
+.restaurant-card {
+    border-radius: 22px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+}
+
+.restaurant-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 18px 40px rgba(0,0,0,0.18);
+}
+
+.restaurant-img {
+    height: 220px;
+    object-fit: cover;
+}
+
+.btn-main {
+    background: linear-gradient(90deg, #EA1D2C, #FF385C);
+    color: white;
+    border-radius: 50px;
+    font-weight: 600;
+    padding: 10px 24px;
+    border: none;
+}
+
+.btn-main:hover {
+    opacity: 0.9;
+    color: white;
+}
+
+.admin-buttons a {
+    border-radius: 50px;
+}
+</style>
+
+<!-- HEADER -->
+<div class="page-header text-center">
+    <div class="container">
+        <h1>🍽 Restaurantes</h1>
+        <p class="mb-0 opacity-75">
+            Descubra, peça e reserve com facilidade
+        </p>
+    </div>
+</div>
+
+<div class="container">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-bold mb-0">Lista Disponível</h4>
+
+        {% if user.is_superuser %}
+        <a class="btn btn-main"
+           href="{% url 'restaurant_create' %}">
+            + Criar Restaurante
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="row">
+        {% for restaurant in restaurants %}
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card restaurant-card h-100">
+
+                    {% if restaurant.image %}
+                        <img src="{{ restaurant.image.url }}"
+                             class="restaurant-img w-100">
+                    {% else %}
+                        <img src="{% static 'img/default-restaurant.jpg' %}"
+                             class="restaurant-img w-100">
+                    {% endif %}
+
+                    <div class="card-body d-flex flex-column">
+
+                        <h5 class="fw-bold">
+                            {{ restaurant.name }}
+                        </h5>
+
+                        <p class="text-muted small">
+                            {{ restaurant.description|truncatewords:18 }}
+                        </p>
+
+                        <a href="{% url 'restaurant_detail' restaurant.id %}"
+                           class="btn btn-dark mt-auto rounded-pill">
+                            Ver Restaurante
+                        </a>
+
+                        {% if user.is_superuser %}
+                        <div class="admin-buttons mt-3 d-flex gap-2">
+                            <a href="{% url 'restaurant_update' restaurant.id %}"
+                               class="btn btn-outline-primary btn-sm w-50">
+                                Editar
+                            </a>
+
+                            <a href="{% url 'restaurant_delete' restaurant.id %}"
+                               class="btn btn-outline-danger btn-sm w-50">
+                                Excluir
+                            </a>
+                        </div>
+                        {% endif %}
+
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="text-center py-5">
+                <h5 class="text-muted">
+                    Nenhum restaurante cadastrado ainda.
+                </h5>
+                {% if user.is_superuser %}
+                <a class="btn btn-main mt-3"
+                   href="{% url 'restaurant_create' %}">
+                    Criar Primeiro Restaurante
+                </a>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+<style>
+.section-title {
+    font-weight: 800;
+    font-size: 28px;
+    margin-bottom: 30px;
+}
+
+/* SCROLL HORIZONTAL */
+.scroll-container {
+    display: flex;
+    overflow-x: auto;
+    gap: 20px;
+    padding-bottom: 10px;
+    scroll-behavior: smooth;
+}
+
+.scroll-container::-webkit-scrollbar {
+    height: 8px;
+}
+
+.scroll-container::-webkit-scrollbar-thumb {
+    background: #EA1D2C;
+    border-radius: 10px;
+}
+
+/* CARD */
+.restaurant-card {
+    min-width: 280px;
+    max-width: 280px;
+    border-radius: 20px;
+    overflow: hidden;
+    border: none;
+    transition: 0.3s ease;
+    background: #fff;
+    flex-shrink: 0;
+}
+
+.restaurant-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0px 20px 40px rgba(0,0,0,0.12);
+}
+
+.restaurant-image {
+    height: 200px;
+    width: 100%;
+    object-fit: cover;
+}
+
+.restaurant-name {
+    font-weight: 700;
+    font-size: 18px;
+}
+
+.restaurant-description {
+    font-size: 14px;
+    color: #777;
+}
+
+.btn-modern {
+    background: #EA1D2C;
+    border: none;
+    border-radius: 50px;
+    font-weight: 600;
+    padding: 8px 20px;
+    color: white;
+}
+
+.btn-modern:hover {
+    background: #FF385C;
+}
+</style>
+
+
+<!-- RESTAURANTES -->
+<h2 class="section-title text-center">
+    🍽 Restaurantes em Destaque
+</h2>
+
+<div class="scroll-container">
+
+    {% for restaurant in restaurants %}
+    <div class="restaurant-card">
+
+        {% if restaurant.image %}
+            <img src="{{ restaurant.image.url }}" 
+                 class="restaurant-image">
+        {% else %}
+            <img src="{% static 'images/banner-food.jpg' %}" 
+                 class="restaurant-image">
+        {% endif %}
+
+        <div class="card-body">
+
+            <h5 class="restaurant-name">
+                {{ restaurant.name }}
+            </h5>
+
+            <p class="restaurant-description">
+                {{ restaurant.description|truncatechars:70 }}
+            </p>
+
+            <a href="{% url 'restaurant_detail' restaurant.id %}" 
+               class="btn btn-modern w-100 mt-2">
+               Ver Restaurante
+            </a>
+
+        </div>
+    </div>
+
+    {% empty %}
+        <p class="text-muted text-center">
+            Nenhum restaurante cadastrado ainda.
+        </p>
+    {% endfor %}
+
+</div>
+
+{% endblock %}
