@@ -3,18 +3,58 @@
 {% block content %}
 
 <div class="row justify-content-center">
-    <div class="col-md-5">
-        <div class="card shadow-sm p-4">
-            <h3 class="text-center mb-3">Criar Conta</h3>
+    <div class="col-lg-5 col-md-7">
+
+        <div class="card border-0 shadow-lg p-4" style="border-radius: 20px;">
+
+            <div class="text-center mb-4">
+                <h2 class="fw-bold">Criar Conta</h2>
+                <p class="text-muted">Cadastre-se como Cliente ou Empresa</p>
+            </div>
 
             <form method="post">
                 {% csrf_token %}
-                {{ form.as_p }}
-                <button type="submit" class="btn btn-success w-100">
-                    Registrar
+
+                <!-- Username -->
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Usuário</label>
+                    {{ form.username }}
+                </div>
+
+                <!-- Tipo de Conta -->
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Tipo de Conta</label>
+                    {{ form.user_type }}
+                </div>
+
+                <!-- Senha -->
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Senha</label>
+                    {{ form.password1 }}
+                </div>
+
+                <!-- Confirmar Senha -->
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">Confirmar Senha</label>
+                    {{ form.password2 }}
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
+                    Criar Conta
                 </button>
             </form>
+
+            <div class="text-center mt-3">
+                <small class="text-muted">
+                    Já possui conta?
+                    <a href="{% url 'login' %}" class="fw-semibold text-decoration-none">
+                        Fazer login
+                    </a>
+                </small>
+            </div>
+
         </div>
+
     </div>
 </div>
 

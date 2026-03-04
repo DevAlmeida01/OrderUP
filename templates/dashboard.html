@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="container mt-5">
+    <h2 class="mb-4">📊 Painel de Controle (Dashboard)</h2>
+
+    <!-- 🔥 CARDS DE RESUMO (Pegando as variáveis da sua views.py!) -->
+    <div class="row mb-5">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white shadow rounded-4 h-100">
+                <div class="card-body d-flex flex-column justify-content-center align-items-center">
+                    <h5 class="card-title">Total de Vendas</h5>
+                    <h2 class="display-5 fw-bold">{{ total_vendas }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-warning text-dark shadow rounded-4 h-100">
+                <div class="card-body d-flex flex-column justify-content-center align-items-center">
+                    <h5 class="card-title">Aguardando Pagamento</h5>
+                    <h2 class="display-5 fw-bold">{{ aguardando_pagamento }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-success text-white shadow rounded-4 h-100">
+                <div class="card-body d-flex flex-column justify-content-center align-items-center">
+                    <h5 class="card-title">Faturamento Total</h5>
+                    <h2 class="display-5 fw-bold">R$ {{ total_faturado }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🔥 SEÇÃO DE RESTAURANTES COM OS BOTÕES -->
+    <div class="card shadow-lg p-4 rounded-4 mb-5">
+        <h3 class="mb-4 text-center">🏪 Meus Restaurantes</h3>
+        
+        {% if restaurants %}
+            <div class="row">
+            {% for restaurant in restaurants %}
+                <div class="col-md-6 mb-4">
+                    <div class="card border-0 shadow-sm h-100 bg-light">
+                        <div class="card-body text-center">
+                            <h4 class="card-title text-primary fw-bold">{{ restaurant.name }}</h4>
+                            <p class="text-muted">{{ restaurant.description|truncatechars:60 }}</p>
+                            
+                            <hr>
+                            
+                            <!-- Botões de Ação -->
+                            <div class="d-grid gap-2">
+                                <a href="{% url 'restaurant_detail' restaurant.id %}" class="btn btn-outline-primary">
+                                    👁️ Gerenciar Restaurante
+                                </a>
+                                <a href="{% url 'menu_create' restaurant.id %}" class="btn btn-success">
+                                    ➕ Adicionar Produto no Cardápio
+                                </a>
+                                <a href="{% url 'order_create' restaurant.id %}" class="btn btn-warning">
+                                    🛒 Fazer Pedido
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+            </div>
+        {% else %}
+            <!-- Se a Empresa ainda não cadastrou nenhum restaurante -->
+            <div class="alert alert-info text-center p-4 rounded-4 shadow-sm">
+                <h4 class="alert-heading">Bem-vindo ao OrderUP!</h4>
+                <p>Você ainda não possui nenhum restaurante cadastrado no sistema.</p>
+                <hr>
+                <a href="{% url 'restaurant_create' %}" class="btn btn-primary btn-lg mt-2">
+                    ➕ Cadastrar Meu Primeiro Restaurante
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+
+{% endblock %}

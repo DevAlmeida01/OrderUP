@@ -38,17 +38,33 @@
     transition: 0.3s ease;
     background: #fff;
     flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    position: relative;
 }
 
 .restaurant-card:hover {
     transform: translateY(-8px);
-    box-shadow: 0px 20px 40px rgba(0,0,0,0.12);
+    box-shadow: 0px 20px 40px rgba(0,0,0,0.15);
 }
 
 .restaurant-image {
     height: 200px;
     width: 100%;
     object-fit: cover;
+}
+
+/* BADGE NOVO */
+.badge-new {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    background: #28a745;
+    color: white;
+    padding: 5px 12px;
+    font-size: 12px;
+    border-radius: 50px;
+    font-weight: 600;
 }
 
 .restaurant-name {
@@ -59,6 +75,13 @@
 .restaurant-description {
     font-size: 14px;
     color: #777;
+}
+
+/* INFO EXTRA */
+.restaurant-meta {
+    font-size: 13px;
+    color: #555;
+    margin-bottom: 10px;
 }
 
 .btn-modern {
@@ -76,7 +99,6 @@
 </style>
 
 
-<!-- RESTAURANTES -->
 <h2 class="section-title text-center">
     🍽 Restaurantes em Destaque
 </h2>
@@ -87,25 +109,33 @@
     <div class="restaurant-card">
 
         {% if restaurant.image %}
-            <img src="{{ restaurant.image.url }}" 
-                 class="restaurant-image">
+            <img src="{{ restaurant.image.url }}" class="restaurant-image">
         {% else %}
-            <img src="{% static 'images/banner-food.jpg' %}" 
-                 class="restaurant-image">
+            <img src="{% static 'images/banner-food.jpg' %}" class="restaurant-image">
         {% endif %}
 
-        <div class="card-body">
+        <!-- 🔥 Badge Novo (exemplo: criado recentemente) -->
+        {% if restaurant.created_at|timesince < "7 days" %}
+            <span class="badge-new">Novo</span>
+        {% endif %}
+
+        <div class="card-body d-flex flex-column flex-grow-1">
 
             <h5 class="restaurant-name">
                 {{ restaurant.name }}
             </h5>
+
+            <!-- ⭐ Avaliação fake visual -->
+            <div class="restaurant-meta">
+                ⭐ 4.8 • ⏱ 30-40 min • 💰 $$ 
+            </div>
 
             <p class="restaurant-description">
                 {{ restaurant.description|truncatechars:70 }}
             </p>
 
             <a href="{% url 'restaurant_detail' restaurant.id %}" 
-               class="btn btn-modern w-100 mt-2">
+               class="btn btn-modern w-100 mt-auto">
                Ver Restaurante
             </a>
 

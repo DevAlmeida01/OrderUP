@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="container mt-5">
+    <div class="card shadow-lg p-4 rounded-4">
+        
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="mb-0">🛒 Fazer Pedido</h2>
+            
+            {% if request.user == restaurant.owner or request.user.is_superuser %}
+                <a href="{% url 'menu_create' restaurant.id %}" class="btn btn-outline-primary">
+                    ➕ Novo Produto
+                </a>
+            {% endif %}
+        </div>
+
+        {% if not menu_items %}
+            <div class="alert alert-warning text-center">
+                <strong>Aviso:</strong> Este restaurante ainda não possui produtos disponíveis.
+            </div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+
+            <div id="items-container">
+                <div class="row mb-4 item-row">
+
+                    <div class="col-md-6">
+                        <label class="fw-semibold">Produto:</label>
+                        <select name="menu_item" class="form-control product-select" required>
+                            <option value="">Selecione um produto</option>
+                            
+                            {% for item in menu_items %}
+                                <option 
+                                    value="{{ item.id }}"
+                                    data-image="{% if item.image %}{{ item.image.url }}{% endif %}"
+                                >
+                                    {{ item.name }} - R$ {{ item.price }}
+                                </option>
+                            {% endfor %}
+                        </select>
+
+                        <!-- IMAGEM DO PRODUTO -->
+                        <div class="text-center mt-3">
+                            <img class="product-preview img-fluid rounded shadow-sm"
+                                 style="max-height:180px; display:none;">
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="fw-semibold">Quantidade:</label>
+                        <input type="number" name="quantity" class="form-control" min="1" value="1" required>
+                    </div>
+
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="button" class="btn btn-danger remove-item w-100">
+                            X
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+            <button type="button" id="add-item" class="btn btn-secondary mb-3">
+                ➕ Adicionar Mais Um Produto
+            </button>
+
+            <div class="mb-3">
+                <label class="fw-semibold">Tipo do Pedido:</label>
+                {{ form.order_type }}
+            </div>
+
+            <div class="text-center mt-4">
+                <button type="submit" class="btn btn-success px-4" {% if not menu_items %}disabled{% endif %}>
+                    ✔ Confirmar Pedido
+                </button>
+
+                <a href="{% url 'restaurant_list' %}" class="btn btn-outline-secondary px-4 ms-2">
+                    Cancelar
+                </a>
+            </div>
+
+        </form>
+
+    </div>
+</div>
+
+<script>
+
+// Função que ativa preview da imagem
+function activateImagePreview(row) {
+    const select = row.querySelector('.product-select');
+    const preview = row.querySelector('.product-preview');
+
+    select.addEventListener('change', function() {
+        const selected = this.options[this.selectedIndex];
+        const imageUrl = selected.getAttribute('data-image');
+
+        if (imageUrl) {
+            preview.src = imageUrl;
+            preview.style.display = "block";
+        } else {
+            preview.style.display = "none";
+        }
+    });
+}
+
+// Ativar na primeira linha
+document.querySelectorAll('.item-row').forEach(row => {
+    activateImagePreview(row);
+});
+
+// Adicionar novo item
+document.getElementById('add-item').addEventListener('click', function() {
+    const container = document.getElementById('items-container');
+    const firstItem = document.querySelector('.item-row');
+    const newItem = firstItem.cloneNode(true);
+
+    newItem.querySelectorAll('input').forEach(input => {
+        input.value = 1;
+    });
+
+    newItem.querySelectorAll('select').forEach(select => {
+        select.value = '';
+    });
+
+    newItem.querySelectorAll('img').forEach(img => {
+        img.style.display = "none";
+    });
+
+    container.appendChild(newItem);
+    activateImagePreview(newItem);
+});
+
+// Remover item
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('remove-item')) {
+        const rows = document.querySelectorAll('.item-row');
+        if (rows.length > 1) {
+            e.target.closest('.item-row').remove();
+        }
+    }
+});
+
+// Limpar itens vazios antes de enviar
+document.querySelector('form').addEventListener('submit', function() {
+    const rows = document.querySelectorAll('.item-row');
+
+    rows.forEach(row => {
+        const select = row.querySelector('select');
+        const input = row.querySelector('input');
+
+        if (!select.value || input.value <= 0) {
+            row.remove();
+        }
+    });
+});
+
+</script>
+
+{% endblock %}

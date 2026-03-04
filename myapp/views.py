@@ -1,44 +1,52 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
+from django.contrib import messages
+from django.contrib.auth import login
 
-from .models import Restaurant, Order, Reservation, MenuItem, OrderItem
-from .forms import RestaurantForm, OrderForm, ReservationForm, MenuItemForm
-
+from .models import Restaurant, Order, Reservation, MenuItem, OrderItem, Contact
+from .forms import (
+    CustomUserCreationForm,
+    RestaurantForm,
+    OrderForm,
+    ReservationForm,
+    MenuItemForm,
+    ContactForm
+)
 
 # =========================
 # HOME
 # =========================
-
 def home(request):
-    restaurants = Restaurant.objects.all().order_by('-id')
+    restaurants = Restaurant.objects.all()
     return render(request, 'home.html', {'restaurants': restaurants})
 
 
 # =========================
 # REGISTER
 # =========================
-
 def register(request):
     if request.method == 'POST':
-        form = UserCreationForm(request.POST)
+        form = CustomUserCreationForm(request.POST)
         if form.is_valid():
-            form.save()
-            return redirect('login')
+            user = form.save()
+            login(request, user)
+
+            if user.profile.user_type == 'empresa':
+                return redirect('my_dashboard')
+            return redirect('home')
     else:
-        form = UserCreationForm()
+        form = CustomUserCreationForm()
 
     return render(request, 'auth/register.html', {'form': form})
 
 
 # =========================
-# LISTA RESTAURANTES
+# RESTAURANTES
 # =========================
-
 @login_required
 def restaurant_list(request):
-    restaurants = Restaurant.objects.all().order_by('-id')
+    restaurants = Restaurant.objects.all()
 
     query = request.GET.get('q')
     if query:
@@ -47,19 +55,17 @@ def restaurant_list(request):
             Q(description__icontains=query)
         )
 
-    restaurants = restaurants.select_related('owner')
+    return render(request, 'restaurant_list.html', {'restaurants': restaurants})
 
-    return render(request, 'restaurant_list.html', {
-        'restaurants': restaurants
-    })
-
-
-# =========================
-# CRIAR RESTAURANTE
-# =========================
 
 @login_required
 def restaurant_create(request):
+
+    if not request.user.is_superuser:
+        if not hasattr(request.user, 'profile') or request.user.profile.user_type != 'empresa':
+            messages.error(request, "Apenas contas do tipo EMPRESA podem cadastrar restaurantes.")
+            return redirect('restaurant_list')
+
     if request.method == 'POST':
         form = RestaurantForm(request.POST, request.FILES)
         if form.is_valid():
@@ -73,277 +79,145 @@ def restaurant_create(request):
     return render(request, 'restaurant_form.html', {'form': form})
 
 
-# =========================
-# DETALHE RESTAURANTE
-# =========================
-
 @login_required
 def restaurant_detail(request, pk):
-    restaurant = get_object_or_404(
-        Restaurant.objects.select_related('owner'),
-        pk=pk
-    )
-
-    menu_items = MenuItem.objects.filter(
-        restaurant=restaurant,
-        available=True
-    )
+    restaurant = get_object_or_404(Restaurant, pk=pk)
 
     if request.user == restaurant.owner:
-        orders = Order.objects.filter(
-            restaurant=restaurant
-        ).select_related('customer').order_by('-created_at')
-
-        reservations = Reservation.objects.filter(
-            restaurant=restaurant
-        ).select_related('customer').order_by('-created_at')
+        orders = Order.objects.filter(restaurant=restaurant)
+        reservations = Reservation.objects.filter(restaurant=restaurant)
+        menu_items = restaurant.menu_items.all()
     else:
-        orders = Order.objects.filter(
-            restaurant=restaurant,
-            customer=request.user
-        ).select_related('customer')
-
-        reservations = Reservation.objects.filter(
-            restaurant=restaurant,
-            customer=request.user
-        ).select_related('customer')
+        orders = Order.objects.filter(restaurant=restaurant, customer=request.user)
+        reservations = Reservation.objects.filter(restaurant=restaurant, customer=request.user)
+        menu_items = restaurant.menu_items.filter(available=True)
 
     return render(request, 'restaurant_detail.html', {
         'restaurant': restaurant,
-        'menu_items': menu_items,
         'orders': orders,
-        'reservations': reservations
+        'reservations': reservations,
+        'menu_items': menu_items
     })
 
 
 # =========================
-# EDITAR RESTAURANTE (SÓ ADMIN)
+# PEDIDOS
 # =========================
-
-@login_required
-def restaurant_update(request, pk):
-    restaurant = get_object_or_404(Restaurant, pk=pk)
-
-    if not request.user.is_superuser:
-        return redirect('restaurant_list')
-
-    if request.method == 'POST':
-        form = RestaurantForm(request.POST, request.FILES, instance=restaurant)
-        if form.is_valid():
-            form.save()
-            return redirect('restaurant_list')
-    else:
-        form = RestaurantForm(instance=restaurant)
-
-    return render(request, 'restaurant_form.html', {'form': form})
-
-
-# =========================
-# DELETAR RESTAURANTE (SÓ ADMIN)
-# =========================
-
-@login_required
-def restaurant_delete(request, pk):
-    restaurant = get_object_or_404(Restaurant, pk=pk)
-
-    if not request.user.is_superuser:
-        return redirect('restaurant_list')
-
-    if request.method == 'POST':
-        restaurant.delete()
-        return redirect('restaurant_list')
-
-    return render(request, 'restaurant_confirm_delete.html', {'restaurant': restaurant})
-
-
-# =========================
-# ADICIONAR ITEM AO CARDÁPIO (SÓ DONO)
-# =========================
-
-@login_required
-def menu_create(request, restaurant_id):
-    restaurant = get_object_or_404(Restaurant, id=restaurant_id)
-
-    if request.user != restaurant.owner:
-        return redirect('restaurant_list')
-
-    if request.method == 'POST':
-        form = MenuItemForm(request.POST, request.FILES)
-        if form.is_valid():
-            menu_item = form.save(commit=False)
-            menu_item.restaurant = restaurant
-            menu_item.save()
-            return redirect('restaurant_detail', pk=restaurant.id)
-    else:
-        form = MenuItemForm()
-
-    return render(request, 'menu_form.html', {'form': form})
-
-
-# =========================
-# CRIAR PEDIDO (COM TOTAL)
-# =========================
-
 @login_required
 def order_create(request, restaurant_id):
     restaurant = get_object_or_404(Restaurant, id=restaurant_id)
-
-    menu_items = MenuItem.objects.filter(
-        restaurant=restaurant,
-        available=True
-    )
+    menu_items = restaurant.menu_items.filter(available=True)
 
     if request.method == 'POST':
+
+        items = request.POST.getlist('menu_item')
+        quantities = request.POST.getlist('quantity')
         order_type = request.POST.get('order_type')
 
-        if not order_type:
-            return redirect('restaurant_list')
+        # 🔥 Verifica se há pelo menos um item válido
+        valid_items = [
+            (item_id, qty)
+            for item_id, qty in zip(items, quantities)
+            if item_id and int(qty) > 0
+        ]
 
+        if not valid_items:
+            messages.error(request, "Você precisa selecionar pelo menos um produto válido.")
+            return redirect('order_create', restaurant_id=restaurant.id)
+
+        # 🔥 Cria pedido já como PENDING (indo para pagamento)
         order = Order.objects.create(
             restaurant=restaurant,
             customer=request.user,
             order_type=order_type,
-            total=0  # inicia zerado
+            status='PENDING'
         )
 
-        items = request.POST.getlist('menu_item')
-        quantities = request.POST.getlist('quantity')
+        for item_id, qty in valid_items:
+            menu_item = get_object_or_404(MenuItem, id=item_id, restaurant=restaurant)
+            OrderItem.objects.create(
+                order=order,
+                menu_item=menu_item,
+                quantity=int(qty)
+            )
 
-        total = 0  # 🔥 NOVO
+        return redirect('payment_area', order_id=order.id)
 
-        for item_id, qty in zip(items, quantities):
-            if item_id and qty:
-                menu_item = MenuItem.objects.get(id=item_id)
-
-                if menu_item.restaurant != restaurant:
-                    continue
-
-                qty = int(qty)
-
-                OrderItem.objects.create(
-                    order=order,
-                    menu_item=menu_item,
-                    quantity=qty
-                )
-
-                total += menu_item.price * qty  # 🔥 SOMA
-
-        order.total = total  # 🔥 SALVA TOTAL
-        order.save()
-
-        return redirect('restaurant_detail', pk=restaurant.id)
-
+    form = OrderForm()
     return render(request, 'order_form.html', {
         'menu_items': menu_items,
-        'form': OrderForm()
+        'restaurant': restaurant,
+        'form': form
     })
 
 
-# =========================
-# ALTERAR STATUS PEDIDO (SÓ DONO)
-# =========================
-
 @login_required
-def order_update_status(request, pk):
-    order = get_object_or_404(
-        Order.objects.select_related('restaurant'),
-        pk=pk
-    )
+def payment_area(request, order_id):
+    order = get_object_or_404(Order, id=order_id)
 
-    if request.user != order.restaurant.owner:
+    # 🔥 Segurança
+    if request.user != order.customer and request.user != order.restaurant.owner and not request.user.is_superuser:
         return redirect('restaurant_list')
 
-    new_status = request.POST.get('status')
-
-    if new_status:
-        order.status = new_status
-        order.save()
-
-    return redirect('restaurant_detail', pk=order.restaurant.id)
-
-
-# =========================
-# CRIAR RESERVA
-# =========================
-
-@login_required
-def reservation_create(request, restaurant_id):
-    restaurant = get_object_or_404(Restaurant, id=restaurant_id)
-
-    if request.method == 'POST':
-        form = ReservationForm(request.POST)
-        if form.is_valid():
-            reservation = form.save(commit=False)
-            reservation.restaurant = restaurant
-            reservation.customer = request.user
-            reservation.save()
-            return redirect('restaurant_detail', pk=restaurant.id)
-    else:
-        form = ReservationForm()
-
-    return render(request, 'reservation_form.html', {'form': form})
-
-
-# =========================
-# DASHBOARD DO DONO
-# =========================
-
-@login_required
-def my_dashboard(request):
-    restaurants = Restaurant.objects.filter(
-        owner=request.user
-    )
-
-    orders = Order.objects.filter(
-        restaurant__owner=request.user
-    ).select_related('restaurant', 'customer').order_by('-created_at')
-
-    reservations = Reservation.objects.filter(
-        restaurant__owner=request.user
-    ).select_related('restaurant', 'customer').order_by('-created_at')
-
-    return render(request, 'dashboard.html', {
-        'restaurants': restaurants,
-        'orders': orders,
-        'reservations': reservations
+    return render(request, 'payment_area.html', {
+        'order': order
     })
 
 
-# =========================
-# DELETAR PEDIDO
-# =========================
+@login_required
+def order_detail(request, pk):
+    order = get_object_or_404(Order, pk=pk)
+
+    if request.method == 'POST' and request.user == order.restaurant.owner:
+        order.status = request.POST.get('status')
+        order.save()
+
+    return render(request, 'order_detail.html', {'order': order})
+
 
 @login_required
 def order_delete(request, pk):
     order = get_object_or_404(Order, pk=pk)
-
-    if request.user != order.restaurant.owner and request.user != order.customer:
-        return redirect('restaurant_list')
-
     restaurant_id = order.restaurant.id
-
-    if request.method == 'POST':
-        order.delete()
-        return redirect('restaurant_detail', pk=restaurant_id)
-
-    return render(request, 'order_confirm_delete.html', {'order': order})
+    order.delete()
+    return redirect('restaurant_detail', pk=restaurant_id)
 
 
 # =========================
-# DELETAR RESERVA
+# DASHBOARD
 # =========================
-
 @login_required
-def reservation_delete(request, pk):
-    reservation = get_object_or_404(Reservation, pk=pk)
+def my_dashboard(request):
 
-    if request.user != reservation.restaurant.owner and request.user != reservation.customer:
-        return redirect('restaurant_list')
+    user = request.user
 
-    restaurant_id = reservation.restaurant.id
+    if user.is_superuser:
+        restaurants = Restaurant.objects.all()
+        orders = Order.objects.all()
+        reservations = Reservation.objects.all()
+        template = 'dashboard_admin.html'
 
-    if request.method == 'POST':
-        reservation.delete()
-        return redirect('restaurant_detail', pk=restaurant_id)
+    elif hasattr(user, 'profile') and user.profile.user_type == 'empresa':
+        restaurants = Restaurant.objects.filter(owner=user)
+        orders = Order.objects.filter(restaurant__owner=user)
+        reservations = Reservation.objects.filter(restaurant__owner=user)
+        template = 'dashboard_empresa.html'
 
-    return render(request, 'reservation_confirm_delete.html', {'reservation': reservation})
+    else:
+        restaurants = None
+        orders = Order.objects.filter(customer=user)
+        reservations = Reservation.objects.filter(customer=user)
+        template = 'dashboard_cliente.html'
+
+    total_vendas = orders.count()
+    aguardando_pagamento = orders.filter(status='PENDING').count()
+    total_faturado = sum(order.total for order in orders)
+
+    return render(request, template, {
+        'restaurants': restaurants,
+        'orders': orders,
+        'reservations': reservations,
+        'total_vendas': total_vendas,
+        'aguardando_pagamento': aguardando_pagamento,
+        'total_faturado': total_faturado,
+    })

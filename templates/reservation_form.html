@@ -1,47 +1,64 @@
 {% extends 'base.html' %}
 
 {% block content %}
-
 <div class="container mt-5">
-    <div class="card shadow-lg p-4 rounded-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-lg border-0 rounded-4">
+                
+                <!-- CABEÇALHO PREMIUM -->
+                <div class="card-header bg-dark text-white py-3 text-center rounded-top-4">
+                    <h4 class="mb-0">📅 Fazer Reserva</h4>
+                </div>
+                
+                <div class="card-body p-4 p-md-5">
+                    <form method="post">
+                        {% csrf_token %}
 
-        <h2 class="text-center mb-4">📅 Fazer Reserva</h2>
+                        <!-- CAMPOS MANUAIS (Sua Lógica) -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-muted">{{ form.date.label }}</label>
+                            {{ form.date }}
+                        </div>
 
-        <form method="post">
-            {% csrf_token %}
+                        {% if form.time %}
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-muted">{{ form.time.label }}</label>
+                            {{ form.time }}
+                        </div>
+                        {% endif %}
 
-            <div class="mb-3">
-                {{ form.date.label_tag }}
-                {{ form.date }}
+                        {% if form.guests %}
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-muted">{{ form.guests.label }}</label>
+                            {{ form.guests }}
+                        </div>
+                        {% endif %}
+
+                        <!-- LOOP DE SEGURANÇA: Renderiza outros campos do models (ex: observação) -->
+                        {% for field in form %}
+                            {% if field.name not in 'date,time,guests' %}
+                            <div class="mb-3">
+                                <label class="form-label fw-bold text-muted">{{ field.label }}</label>
+                                {{ field }}
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+
+                        <!-- BOTÕES -->
+                        <div class="d-grid gap-2 mt-5">
+                            <button type="submit" class="btn btn-primary btn-lg fw-bold">
+                                ✔ Confirmar Reserva
+                            </button>
+                            <a href="{% url 'restaurant_list' %}" class="btn btn-outline-secondary btn-lg">
+                                Cancelar
+                            </a>
+                        </div>
+                        
+                    </form>
+                </div>
             </div>
-
-            {% if form.time %}
-            <div class="mb-3">
-                {{ form.time.label_tag }}
-                {{ form.time }}
-            </div>
-            {% endif %}
-
-            {% if form.guests %}
-            <div class="mb-3">
-                {{ form.guests.label_tag }}
-                {{ form.guests }}
-            </div>
-            {% endif %}
-
-            <div class="text-center mt-4">
-                <button type="submit" class="btn btn-primary px-4">
-                    ✔ Confirmar Reserva
-                </button>
-
-                <a href="{% url 'restaurant_list' %}" 
-                   class="btn btn-outline-secondary px-4 ms-2">
-                    Cancelar
-                </a>
-            </div>
-        </form>
-
+        </div>
     </div>
 </div>
-
 {% endblock %}

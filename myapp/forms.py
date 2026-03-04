@@ -1,5 +1,40 @@
 from django import forms
-from .models import Restaurant, Order, Reservation, MenuItem
+from django.contrib.auth.models import User
+from django.contrib.auth.forms import UserCreationForm
+
+from .models import Restaurant, Order, Reservation, MenuItem, Contact
+
+
+# =========================
+# CADASTRO PERSONALIZADO
+# =========================
+class CustomUserCreationForm(UserCreationForm):
+
+    USER_TYPE = (
+        ('cliente', 'Cliente'),
+        ('empresa', 'Empresa'),
+    )
+
+    user_type = forms.ChoiceField(
+        choices=USER_TYPE,
+        widget=forms.Select(attrs={
+            'class': 'form-select'
+        }),
+        label="Tipo de Conta"
+    )
+
+    class Meta:
+        model = User
+        fields = ['username', 'password1', 'password2', 'user_type']
+
+    def save(self, commit=True):
+        user = super().save(commit)
+
+        # 🔥 Atualiza o profile automaticamente
+        user.profile.user_type = self.cleaned_data['user_type']
+        user.profile.save()
+
+        return user
 
 
 # =========================
@@ -56,12 +91,12 @@ class MenuItemForm(forms.ModelForm):
 
 
 # =========================
-# PEDIDO ONLINE (ATUALIZADO)
+# PEDIDO ONLINE
 # =========================
 class OrderForm(forms.ModelForm):
     class Meta:
         model = Order
-        fields = ['order_type']  # 🔥 removidos menu_item e quantity
+        fields = ['order_type']
         widgets = {
             'order_type': forms.Select(attrs={
                 'class': 'form-select'
@@ -75,7 +110,7 @@ class OrderForm(forms.ModelForm):
 class ReservationForm(forms.ModelForm):
     class Meta:
         model = Reservation
-        fields = ['date', 'time', 'number_of_people']
+        fields = ['date', 'time', 'number_of_people', 'observation']
         widgets = {
             'date': forms.DateInput(attrs={
                 'class': 'form-control',
@@ -89,5 +124,34 @@ class ReservationForm(forms.ModelForm):
                 'class': 'form-control',
                 'min': 1,
                 'placeholder': 'Número de pessoas'
+            }),
+            'observation': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Possui alergia ou alguma observação?'
+            }),
+        }
+
+
+# =========================
+# FALE CONOSCO
+# =========================
+class ContactForm(forms.ModelForm):
+    class Meta:
+        model = Contact
+        fields = ['name', 'email', 'message']
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Seu nome'
+            }),
+            'email': forms.EmailInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Seu email'
+            }),
+            'message': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Digite sua mensagem'
             }),
         }

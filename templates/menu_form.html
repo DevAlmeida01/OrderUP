@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container mt-5">
+    <div class="card p-4 shadow-sm">
+
+        <h3 class="mb-4">➕ Adicionar Produto ao Cardápio</h3>
+
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <div class="mb-3">
+                <label class="form-label">Nome</label>
+                {{ form.name }}
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Descrição</label>
+                {{ form.description }}
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Preço</label>
+                {{ form.price }}
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Imagem</label>
+                {{ form.image }}
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Disponível</label>
+                {{ form.available }}
+            </div>
+
+            <button type="submit" class="btn btn-success">
+                💾 Salvar Produto
+            </button>
+
+            <a href="{% url 'restaurant_detail' restaurant.id %}" 
+               class="btn btn-secondary">
+               Cancelar
+            </a>
+
+        </form>
+
+    </div>
+</div>
+
+{% endblock %}

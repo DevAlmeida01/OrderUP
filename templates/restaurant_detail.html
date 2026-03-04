@@ -9,8 +9,79 @@
         <div class="card-body text-center">
             <h2 class="mb-2">🍽 {{ restaurant.name }}</h2>
             <p class="text-muted">{{ restaurant.description }}</p>
+
+            {% if user == restaurant.owner %}
+                <a class="btn btn-sm btn-primary mt-2"
+                   href="{% url 'menu_create' restaurant.id %}">
+                   ➕ Adicionar Produto
+                </a>
+            {% endif %}
         </div>
     </div>
+
+
+    <!-- ========================= -->
+    <!-- CARDÁPIO -->
+    <!-- ========================= -->
+    <div class="card shadow-sm mb-4 rounded-4">
+        <div class="card-header bg-dark text-white">
+            📋 Cardápio
+        </div>
+        <div class="card-body">
+
+            <div class="row">
+                {% for item in menu_items %}
+                <div class="col-md-4 mb-4">
+
+                    <div class="card h-100 shadow-sm">
+
+                        {% if item.image %}
+                            <img src="{{ item.image.url }}"
+                                 class="card-img-top"
+                                 style="height:200px; object-fit:cover;">
+                        {% endif %}
+
+                        <div class="card-body d-flex flex-column">
+
+                            <h5>{{ item.name }}</h5>
+                            <p class="text-muted">{{ item.description }}</p>
+                            <strong class="mb-2">R$ {{ item.price }}</strong>
+
+                            {% if user == restaurant.owner %}
+                                <!-- DONO -->
+                                <a href="{% url 'menu_update' restaurant.id item.id %}"
+                                   class="btn btn-warning btn-sm mb-2">
+                                   ✏️ Editar
+                                </a>
+
+                                <a href="{% url 'menu_delete' restaurant.id item.id %}"
+                                   class="btn btn-danger btn-sm">
+                                   🗑 Excluir
+                                </a>
+
+                            {% else %}
+                                <!-- CLIENTE -->
+                                <a href="{% url 'order_create' restaurant.id %}"
+                                   class="btn btn-success btn-sm mt-auto">
+                                   🛒 Fazer Pedido
+                                </a>
+                            {% endif %}
+
+                        </div>
+
+                    </div>
+
+                </div>
+                {% empty %}
+                    <p class="text-muted text-center">
+                        Nenhum produto cadastrado ainda.
+                    </p>
+                {% endfor %}
+            </div>
+
+        </div>
+    </div>
+
 
     <div class="row">
 
@@ -28,7 +99,7 @@
                     </a>
 
                     <ul class="list-group">
-                        {% for order in restaurant.order_set.all %}
+                        {% for order in orders %}
                             <li class="list-group-item">
 
                                 <div class="d-flex justify-content-between">
@@ -36,7 +107,7 @@
                                         <strong>{{ order.customer.username }}</strong>
 
                                         <ul class="mt-2">
-                                            {% for item in order.orderitem_set.all %}
+                                            {% for item in order.items.all %}
                                                 <li>
                                                     {{ item.menu_item.name }} 
                                                     (x{{ item.quantity }})
@@ -81,7 +152,7 @@
                     </a>
 
                     <ul class="list-group">
-                        {% for reservation in restaurant.reservation_set.all %}
+                        {% for reservation in reservations %}
                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                 <div>
                                     <strong>{{ reservation.customer.username }}</strong>

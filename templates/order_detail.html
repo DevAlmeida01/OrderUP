@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg border-0 rounded-4">
+                <div class="card-header bg-success text-white py-3 text-center rounded-top-4">
+                    <h4 class="mb-0">🧾 Detalhes do Pedido #{{ order.id }}</h4>
+                </div>
+
+                <div class="card-body p-5">
+
+                    <!-- INFORMAÇÕES GERAIS -->
+                    <div class="row mb-4">
+                        <div class="col-sm-6">
+                            <h6 class="text-muted mb-1">Restaurante:</h6>
+                            <h5 class="fw-bold">{{ order.restaurant.name }}</h5>
+                        </div>
+                        <div class="col-sm-6 text-sm-end mt-3 mt-sm-0">
+                            <h6 class="text-muted mb-1">Data do Pedido:</h6>
+                            <h5>{{ order.created_at|date:"d/m/Y às H:i" }}</h5>
+                        </div>
+                    </div>
+
+                    <!-- STATUS -->
+                    <div class="mb-4">
+                        <h6 class="text-muted mb-1">Status Atual:</h6>
+
+                        {% if order.status == "Pendente" %}
+                            <span class="badge bg-warning text-dark px-3 py-2">{{ order.status }}</span>
+                        {% elif order.status == "Em preparo" %}
+                            <span class="badge bg-primary px-3 py-2">{{ order.status }}</span>
+                        {% elif order.status == "Saiu para entrega" %}
+                            <span class="badge bg-info text-dark px-3 py-2">{{ order.status }}</span>
+                        {% elif order.status == "Finalizado" %}
+                            <span class="badge bg-success px-3 py-2">{{ order.status }}</span>
+                        {% else %}
+                            <span class="badge bg-secondary px-3 py-2">{{ order.status }}</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- ALTERAR STATUS (APENAS DONO) -->
+                    {% if user == order.restaurant.owner or user.is_superuser %}
+                    <div class="card bg-light p-3 mb-4 rounded-3">
+                        <form method="POST">
+                            {% csrf_token %}
+                            <label class="fw-bold mb-2">Alterar Status:</label>
+                            <div class="d-flex gap-2">
+                                <select name="status" class="form-select">
+                                    <option value="Pendente">Pendente</option>
+                                    <option value="Em preparo">Em preparo</option>
+                                    <option value="Saiu para entrega">Saiu para entrega</option>
+                                    <option value="Finalizado">Finalizado</option>
+                                </select>
+                                <button class="btn btn-success">
+                                    Atualizar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    {% endif %}
+
+                    <!-- ITENS -->
+                    <h5 class="fw-bold border-bottom pb-2 mb-3">Itens Consumidos</h5>
+                    <div class="table-responsive">
+                        <table class="table table-borderless align-middle">
+                            <thead class="text-muted">
+                                <tr>
+                                    <th>Qtd</th>
+                                    <th>Produto</th>
+                                    <th class="text-end">Preço Unit.</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in order.items.all %}
+                                <tr class="border-bottom">
+                                    <td>
+                                        <span class="badge bg-secondary rounded-pill px-3">
+                                            {{ item.quantity }}x
+                                        </span>
+                                    </td>
+                                    <td class="fw-bold">
+                                        {{ item.menu_item.name }}
+                                    </td>
+                                    <td class="text-end text-success">
+                                        R$ {{ item.menu_item.price }}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted">
+                                        Nenhum item encontrado.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- TOTAL -->
+                    <div class="d-flex justify-content-between align-items-center bg-light p-3 rounded-3 mt-4">
+                        <h4 class="m-0 text-muted">Total:</h4>
+                        <h3 class="m-0 text-success fw-bold">
+                            R$ {{ order.total|floatformat:2 }}
+                        </h3>
+                    </div>
+
+                    <!-- BOTÃO VOLTAR -->
+                    <div class="d-grid mt-4">
+                        <a href="{% url 'restaurant_detail' order.restaurant.id %}"
+                           class="btn btn-outline-dark">
+                           ⬅️ Voltar
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

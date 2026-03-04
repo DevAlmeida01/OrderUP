@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container mt-5">
+
+    <div class="text-center mb-5">
+        <h1 class="fw-bold">Cliente / Empresa</h1>
+        <p class="lead mt-3">
+            Quer divulgar seu restaurante no nosso sistema?
+            Cadastre sua empresa e comece a receber reservas e pedidos online.
+        </p>
+    </div>
+
+    <div class="card shadow-lg p-4 text-center">
+
+        <h4 class="mb-3">Como funciona?</h4>
+
+        <p>
+            1️⃣ Crie sua conta como usuário <br>
+            2️⃣ Cadastre seu restaurante <br>
+            3️⃣ Adicione seu cardápio digital <br>
+            4️⃣ Comece a receber pedidos e reservas automaticamente
+        </p>
+
+        {% if user.is_authenticated %}
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success btn-lg mt-3">
+                    Cadastre seu Restaurante
+                </button>
+            </form>
+        {% else %}
+            <a href="{% url 'login' %}" class="btn btn-primary btn-lg mt-3">
+                Faça login para cadastrar
+            </a>
+        {% endif %}
+
+    </div>
+
+</div>
+
+{% endblock %}
