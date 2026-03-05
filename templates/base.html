@@ -186,6 +186,18 @@
                         Cliente / Empresa
                     </a>
 
+
+                    <!-- Se o usuário for EMPRESA ou ADMIN, mostra o botão do Dashboard -->
+{% if user.is_authenticated %}
+    {% if user.profile.user_type == 'empresa' or user.is_superuser %}
+        <li class="nav-item">
+            <a class="nav-link fw-bold text-primary" href="{% url 'my_dashboard' %}">
+                📊 Meu Painel (Dashboard)
+            </a>
+        </li>
+    {% endif %}
+{% endif %}
+
                     
 
 

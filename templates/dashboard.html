@@ -2,81 +2,137 @@
 {% block content %}
 
 <div class="container mt-5">
-    <h2 class="mb-4">📊 Painel de Controle (Dashboard)</h2>
+    <h2 class="mb-4">📊 Painel de Controle</h2>
 
-    <!-- 🔥 CARDS DE RESUMO (Pegando as variáveis da sua views.py!) -->
+    <!-- 🔥 CARDS DE RESUMO FINANCEIRO -->
     <div class="row mb-5">
         <div class="col-md-4">
             <div class="card bg-primary text-white shadow rounded-4 h-100">
-                <div class="card-body d-flex flex-column justify-content-center align-items-center">
-                    <h5 class="card-title">Total de Vendas</h5>
+                <div class="card-body text-center">
+                    <h5>Total de Vendas</h5>
                     <h2 class="display-5 fw-bold">{{ total_vendas }}</h2>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
             <div class="card bg-warning text-dark shadow rounded-4 h-100">
-                <div class="card-body d-flex flex-column justify-content-center align-items-center">
-                    <h5 class="card-title">Aguardando Pagamento</h5>
+                <div class="card-body text-center">
+                    <h5>Aguardando Pagamento</h5>
                     <h2 class="display-5 fw-bold">{{ aguardando_pagamento }}</h2>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
             <div class="card bg-success text-white shadow rounded-4 h-100">
-                <div class="card-body d-flex flex-column justify-content-center align-items-center">
-                    <h5 class="card-title">Faturamento Total</h5>
+                <div class="card-body text-center">
+                    <h5>Faturamento Total</h5>
                     <h2 class="display-5 fw-bold">R$ {{ total_faturado }}</h2>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 🔥 SEÇÃO DE RESTAURANTES COM OS BOTÕES -->
-    <div class="card shadow-lg p-4 rounded-4 mb-5">
-        <h3 class="mb-4 text-center">🏪 Meus Restaurantes</h3>
-        
-        {% if restaurants %}
-            <div class="row">
-            {% for restaurant in restaurants %}
-                <div class="col-md-6 mb-4">
-                    <div class="card border-0 shadow-sm h-100 bg-light">
-                        <div class="card-body text-center">
-                            <h4 class="card-title text-primary fw-bold">{{ restaurant.name }}</h4>
-                            <p class="text-muted">{{ restaurant.description|truncatechars:60 }}</p>
-                            
-                            <hr>
-                            
-                            <!-- Botões de Ação -->
-                            <div class="d-grid gap-2">
-                                <a href="{% url 'restaurant_detail' restaurant.id %}" class="btn btn-outline-primary">
-                                    👁️ Gerenciar Restaurante
-                                </a>
-                                <a href="{% url 'menu_create' restaurant.id %}" class="btn btn-success">
-                                    ➕ Adicionar Produto no Cardápio
-                                </a>
-                                <a href="{% url 'order_create' restaurant.id %}" class="btn btn-warning">
-                                    🛒 Fazer Pedido
-                                </a>
-                            </div>
-                        </div>
+    <!-- 🔥 RESTAURANTES DA EMPRESA -->
+    <h3 class="mb-3">🏪 Meus Restaurantes</h3>
+    <div class="row mb-5">
+        {% for restaurant in restaurants %}
+            <div class="col-md-4 mb-3">
+                <div class="card shadow-sm h-100 border-0 bg-light rounded-4">
+                    <div class="card-body text-center">
+                        <h5 class="fw-bold text-primary">{{ restaurant.name }}</h5>
+                        <hr>
+                        <a href="{% url 'restaurant_detail' restaurant.id %}" class="btn btn-outline-primary btn-sm mb-1 w-100">👁️ Gerenciar</a>
+                        <a href="{% url 'menu_create' restaurant.id %}" class="btn btn-success btn-sm mb-1 w-100">➕ Novo Produto</a>
                     </div>
                 </div>
-            {% endfor %}
             </div>
-        {% else %}
-            <!-- Se a Empresa ainda não cadastrou nenhum restaurante -->
-            <div class="alert alert-info text-center p-4 rounded-4 shadow-sm">
-                <h4 class="alert-heading">Bem-vindo ao OrderUP!</h4>
-                <p>Você ainda não possui nenhum restaurante cadastrado no sistema.</p>
-                <hr>
-                <a href="{% url 'restaurant_create' %}" class="btn btn-primary btn-lg mt-2">
-                    ➕ Cadastrar Meu Primeiro Restaurante
-                </a>
+        {% empty %}
+            <div class="col-12 text-center alert alert-info">
+                Você ainda não tem restaurantes. <a href="{% url 'restaurant_create' %}" class="fw-bold">Cadastre aqui!</a>
             </div>
-        {% endif %}
+        {% endfor %}
     </div>
 
+    <!-- 🔥 PEDIDOS E RESERVAS LADO A LADO -->
+    <div class="row mb-5">
+        
+        <!-- COLUNA DE PEDIDOS (COM MUDANÇA DE STATUS) -->
+        <div class="col-md-7">
+            <div class="card shadow-lg rounded-4 border-0">
+                <div class="card-header bg-dark text-white rounded-top-4">
+                    <h5 class="mb-0">🛒 Pedidos Recentes</h5>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for order in orders %}
+                            <li class="list-group-item p-3">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>#{{ order.id }} - {{ order.customer.username }}</strong>
+                                        <br>
+                                        <small class="text-muted">
+                                            Restaurante: {{ order.restaurant.name }} | 
+                                            Tipo: <span class="badge bg-info text-dark">{{ order.get_order_type_display }}</span>
+                                        </small>
+                                        <br>
+                                        <strong>Total: R$ {{ order.total }}</strong>
+                                    </div>
+                                    
+                                    <!-- Formulário para MUDAR STATUS rápido -->
+                                    <div class="text-end">
+                                        <span class="badge bg-secondary mb-1">{{ order.get_status_display }}</span>
+                                        <form method="POST" action="{% url 'order_update_status' order.pk %}">
+                                            {% csrf_token %}
+                                            <div class="input-group input-group-sm">
+                                                <select name="status" class="form-select">
+                                                    <option value="PENDING" {% if order.status == 'PENDING' %}selected{% endif %}>Aguardando</option>
+                                                    <option value="PAID" {% if order.status == 'PAID' %}selected{% endif %}>Pago</option>
+                                                    <option value="PREPARING" {% if order.status == 'PREPARING' %}selected{% endif %}>Em preparo</option>
+                                                    <option value="READY" {% if order.status == 'READY' %}selected{% endif %}>Pronto</option>
+                                                    <option value="DELIVERED" {% if order.status == 'DELIVERED' %}selected{% endif %}>Entregue</option>
+                                                    <option value="CANCELLED" {% if order.status == 'CANCELLED' %}selected{% endif %}>Cancelado</option>
+                                                </select>
+                                                <button type="submit" class="btn btn-primary">✔</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </li>
+                        {% empty %}
+                            <li class="list-group-item text-center text-muted p-4">Nenhum pedido recebido ainda.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- COLUNA DE RESERVAS -->
+        <div class="col-md-5">
+            <div class="card shadow-lg rounded-4 border-0">
+                <div class="card-header bg-warning text-dark rounded-top-4">
+                    <h5 class="mb-0">📅 Próximas Reservas</h5>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for reservation in reservations %}
+                            <li class="list-group-item p-3">
+                                <strong>Cliente: {{ reservation.customer.username }}</strong>
+                                <br>
+                                <small class="text-muted">Restaurante: {{ reservation.restaurant.name }}</small>
+                                <br>
+                                <span>🗓️ {{ reservation.date }} às {{ reservation.time }}</span>
+                                <br>
+                                <span>👥 Pessoas: {{ reservation.number_of_people }}</span>
+                            </li>
+                        {% empty %}
+                            <li class="list-group-item text-center text-muted p-4">Nenhuma reserva agendada.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+    </div>
 </div>
 
 {% endblock %}

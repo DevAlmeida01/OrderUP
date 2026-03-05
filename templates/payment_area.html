@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-5 text-center">
+    <h2>💳 Pagamento da Entrega</h2>
+    <p>Pedido #{{ order.id }} - Valor Total: R$ {{ order.total }}</p>
+    
+    <div class="alert alert-info">
+        Área de integração com PIX ou Cartão de Crédito entrará aqui.
+    </div>
+
+    <a href="{% url 'restaurant_detail' order.restaurant.id %}" class="btn btn-success">
+        Simular Pagamento e Voltar
+    </a>
+</div>
+{% endblock %}

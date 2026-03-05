@@ -32,6 +32,8 @@ urlpatterns = [
     # =========================
     # CARDÁPIO
     # =========================
+
+    # 🔥 ADICIONAR PRODUTO (ESTAVA FALTANDO)
     path(
         'restaurants/<int:restaurant_id>/menu/add/',
         views.menu_create,
@@ -59,7 +61,13 @@ urlpatterns = [
         name='order_create'
     ),
 
-    # 🔥 NOVO — DETALHE DO PEDIDO
+    path(
+        'pedido/<int:order_id>/pagamento/',
+        views.payment_area,
+        name='payment_area'
+    ),
+
+    # DETALHE DO PEDIDO
     path(
         'orders/<int:pk>/',
         views.order_detail,
@@ -87,7 +95,6 @@ urlpatterns = [
         name='reservation_create'
     ),
 
-    # 🔥 NOVO — DETALHE DA RESERVA
     path(
         'reservations/<int:pk>/',
         views.reservation_detail,
@@ -106,7 +113,7 @@ urlpatterns = [
     path('dashboard/', views.my_dashboard, name='my_dashboard'),
 
     # =========================
-    # FALE CONOSCO
+    # CONTATO
     # =========================
     path('contact/', views.contact_view, name='contact'),
 
