@@ -1,4 +1,5 @@
 import json
+import os
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
@@ -6,10 +7,9 @@ from django.contrib import messages
 from django.contrib.auth import login
 from django.http import JsonResponse
 from dotenv import load_dotenv
-import os
-from groq import Groq  # Importação da API do Groq
+from groq import Groq
 
-# Modelos e Forms  app
+# Modelos e Forms do app
 from .models import Restaurant, Order, Reservation, MenuItem, OrderItem, Contact
 from .forms import (
     CustomUserCreationForm,
@@ -23,9 +23,8 @@ from .forms import (
 # Carrega as variáveis do arquivo .env
 load_dotenv()
 
-# Configuração da API do Grok (Groq)
+# Configuração da API do Groq usando a chave do ambiente
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-
 
 # =========================
 # HOME
@@ -357,21 +356,32 @@ def client_company(request):
     return render(request, 'client_company.html')
 
 
-# =================================
-# CHAT IA (API DO GROQ - Llama 3)
-# =================================
+# ===============================================
+# CHAT IA INTELIGENTE (GROQ + CONTEXTO DO BANCO)
+# ===============================================
 def chat_ai(request):
     if request.method == "POST":
         try:
             data = json.loads(request.body)
             user_message = data.get('message')
 
-            # Chamada para o Groq
+            # --- BUSCA DADOS REAIS DO BANCO PARA O CONTEXTO ---
+            all_restaurants = Restaurant.objects.all()
+            db_context = "Aqui estão os restaurantes e pratos disponíveis no OrderUp:\n"
+            
+            for res in all_restaurants:
+                db_context += f"- Restaurante: {res.name}. Especialidade: {res.description}.\n"
+                items = MenuItem.objects.filter(restaurant=res, available=True)[:3]
+                if items:
+                    pratos = ", ".join([i.name for i in items])
+                    db_context += f"  Pratos populares: {pratos}.\n"
+
+            # --- CHAMADA PARA O GROQ COM PROMPT DE SISTEMA ---
             chat_completion = client.chat.completions.create(
                 messages=[
                     {
                         "role": "system",
-                        "content": "Você é o assistente virtual do sistema OrderUp. Ajude os clientes de forma curta e objetiva."
+                        "content": f"Você é o assistente virtual do OrderUp. {db_context}\nInstruções: Seja simpático, use emojis e baseie suas sugestões apenas nos dados acima."
                     },
                     {
                         "role": "user",
@@ -385,7 +395,7 @@ def chat_ai(request):
             return JsonResponse({'response': ai_response})
             
         except Exception as e:
-            print(f"Erro Groq: {e}")
-            return JsonResponse({'error': str(e)}, status=500)
+            print(f"Erro Chat IA: {e}")
+            return JsonResponse({'error': 'Erro no processamento'}, status=500)
             
-    return JsonResponse({'error': 'Método inválido'}, status=400)
+    return JsonResponse({'error': 'Acesso negado'}, status=400)
