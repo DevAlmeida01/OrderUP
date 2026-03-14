@@ -3,15 +3,13 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 
-
 urlpatterns = [
     # Admin Django
     path('admin/', admin.site.urls),
 
-    # Todas as rotas do app
+    # Todas as rotas do app (Isso já inclui o que está em myapp/urls.py)
     path('', include('myapp.urls')),
 ]
-
 
 # Servir imagens durante desenvolvimento
 if settings.DEBUG:

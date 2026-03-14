@@ -125,11 +125,6 @@
             background-color: #c71622;
         }
 
-        .btn-success {
-            background-color: #28a745;
-            border: none;
-        }
-
         /* FOOTER */
         footer {
             background-color: var(--dark);
@@ -145,6 +140,102 @@
             opacity: 0.8;
         }
 
+        /* --- ESTILOS DO CHAT IA --- */
+        #chat-widget {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        #chat-container {
+            width: 350px;
+            height: 450px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .chat-header {
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 15px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #chat-messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: #f9f9f9;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 8px 12px;
+            border-radius: 15px;
+            font-size: 14px;
+        }
+
+        .user-message {
+            align-self: flex-end;
+            background: var(--primary);
+            color: white;
+            border-bottom-right-radius: 2px;
+        }
+
+        .ai-message {
+            align-self: flex-start;
+            background: #e9ecef;
+            color: var(--dark);
+            border-bottom-left-radius: 2px;
+        }
+
+        .chat-input-area {
+            padding: 15px;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input-area input {
+            flex: 1;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            padding: 5px 15px;
+            outline: none;
+        }
+
+        .chat-toggle-btn {
+            width: 60px;
+            height: 60px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(234,29,44,0.4);
+            transition: 0.3s;
+            border: none;
+            float: right;
+        }
+
+        .chat-toggle-btn:hover {
+            transform: scale(1.1);
+        }
+
         /* RESPONSIVO */
         @media (max-width: 768px) {
             .hero-modern h1 {
@@ -153,6 +244,11 @@
 
             .hero-modern {
                 padding: 100px 20px;
+            }
+            
+            #chat-container {
+                width: 90vw;
+                right: 5vw;
             }
         }
     </style>
@@ -188,15 +284,13 @@
 
 
                     <!-- Se o usuário for EMPRESA ou ADMIN, mostra o botão do Dashboard -->
-{% if user.is_authenticated %}
-    {% if user.profile.user_type == 'empresa' or user.is_superuser %}
-        <li class="nav-item">
-            <a class="nav-link fw-bold text-primary" href="{% url 'my_dashboard' %}">
-                📊 Meu Painel (Dashboard)
-            </a>
-        </li>
-    {% endif %}
-{% endif %}
+                    {% if user.profile.user_type == 'empresa' or user.is_superuser %}
+                        <li class="nav-item" style="list-style: none;">
+                            <a class="nav-link fw-bold text-white" href="{% url 'my_dashboard' %}">
+                                📊 Meu Painel
+                            </a>
+                        </li>
+                    {% endif %}
 
                     
 
@@ -269,8 +363,83 @@
     <p>© 2026 OrderUP • Desenvolvido por Adriano Almeida</p>
 </footer>
 
-<!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<!-- WIDGET DE CHAT IA -->
+<div id="chat-widget" style="position: fixed; bottom: 20px; right: 20px; z-index: 9999;">
+    <!-- Container do Chat (Inicia escondido) -->
+    <div id="chat-container" style="display: none; width: 350px; height: 450px; background: white; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); flex-direction: column; overflow: hidden; margin-bottom: 15px; border: 1px solid #ddd;">
+        <div class="chat-header" style="background: linear-gradient(90deg, #EA1D2C, #FF385C); color: white; padding: 15px; font-weight: 600; display: flex; justify-content: space-between; align-items: center;">
+            <span>Assistente OrderUp</span>
+            <button onclick="toggleChat()" style="background:none; border:none; color:white; font-size:25px; cursor:pointer;">&times;</button>
+        </div>
+        
+        <div id="chat-messages" style="flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: #f9f9f9; color: #333;">
+            <div class="message ai-message" style="align-self: flex-start; background: #e9ecef; padding: 8px 12px; border-radius: 15px; font-size: 14px;">Olá! Sou a IA do OrderUp. Como posso ajudar?</div>
+        </div>
 
-</body>
-</html>
+        <div class="chat-input-area" style="padding: 15px; border-top: 1px solid #eee; display: flex; gap: 10px;">
+            <input type="text" id="chat-input" placeholder="Pergunte algo..." style="flex: 1; border: 1px solid #ddd; border-radius: 20px; padding: 5px 15px; outline: none;">
+            <button onclick="sendMessage()" style="background: #EA1D2C; color: white; border: none; border-radius: 20px; padding: 5px 15px; cursor: pointer;">Enviar</button>
+        </div>
+    </div>
+
+    <!-- Botão Flutuante -->
+    <button class="chat-toggle-btn" onclick="toggleChat()" style="width: 60px; height: 60px; background: #EA1D2C; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; cursor: pointer; box-shadow: 0 5px 15px rgba(234,29,44,0.4); border: none;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M8 15c4.418 0 8-3.134 8-7s-3.582-7-8-7-8 3.134-8 7c0 1.76.743 3.37 1.97 4.6-.097 1.016-.417 2.13-.771 2.966-.079.186.074.394.273.362 2.256-.37 3.597-.938 4.18-1.234A9.06 9.06 0 0 0 8 15z"/>
+        </svg>
+    </button>
+</div>
+
+<!-- SCRIPT DO CHAT -->
+<script>
+    function toggleChat() {
+        const container = document.getElementById('chat-container');
+        // Se estiver escondido (none ou vazio), mostra. Se não, esconde.
+        if (container.style.display === 'none' || container.style.display === '') {
+            container.style.display = 'flex';
+        } else {
+            container.style.display = 'none';
+        }
+    }
+
+    async function sendMessage() {
+        const input = document.getElementById('chat-input');
+        const messagesDiv = document.getElementById('chat-messages');
+        const text = input.value.trim();
+
+        if (text === "") return;
+
+        // Adiciona mensagem do usuário
+        messagesDiv.innerHTML += `<div style="align-self: flex-end; background: #EA1D2C; color: white; padding: 8px 12px; border-radius: 15px; font-size: 14px; max-width: 80%;">${text}</div>`;
+        input.value = "";
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+        try {
+            const response = await fetch('/chat-ai/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ message: text })
+            });
+
+            const data = await response.json();
+
+            if (data.response) {
+                messagesDiv.innerHTML += `<div style="align-self: flex-start; background: #e9ecef; color: #333; padding: 8px 12px; border-radius: 15px; font-size: 14px; max-width: 80%;"><b>IA:</b> ${data.response}</div>`;
+            } else {
+                messagesDiv.innerHTML += `<div style="align-self: flex-start; background: #fee; color: #c00; padding: 8px 12px; border-radius: 15px; font-size: 14px;">Erro ao obter resposta.</div>`;
+            }
+        } catch (error) {
+            messagesDiv.innerHTML += `<div style="align-self: flex-start; background: #fee; color: #c00; padding: 8px 12px; border-radius: 15px; font-size: 14px;">Erro na conexão.</div>`;
+        }
+        
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    // Permitir enviar com ENTER
+    document.getElementById('chat-input').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') sendMessage();
+    });
+</script>
