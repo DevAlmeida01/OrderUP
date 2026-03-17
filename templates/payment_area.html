@@ -1,15 +1,157 @@
 {% extends 'base.html' %}
+{% block title %}Pagamento — OrderUP{% endblock %}
+{% block extra_head %}
+{% if mp_configured and mp_data %}
+<script src="https://sdk.mercadopago.com/js/v2"></script>
+{% endif %}
+{% endblock %}
 {% block content %}
-<div class="container mt-5 text-center">
-    <h2>💳 Pagamento da Entrega</h2>
-    <p>Pedido #{{ order.id }} - Valor Total: R$ {{ order.total }}</p>
-    
-    <div class="alert alert-info">
-        Área de integração com PIX ou Cartão de Crédito entrará aqui.
+<div style="max-width:720px;margin:0 auto">
+  <a href="javascript:history.back()" class="btn-gray" style="margin-bottom:20px"><i class="bi bi-arrow-left"></i> Voltar</a>
+  <h1 style="font-size:26px;font-weight:800;letter-spacing:-1px">Finalizar pagamento</h1>
+  <p style="color:var(--muted);font-size:14px;margin-bottom:28px">Pedido #{{ order.id }} · {{ order.restaurant.name }}</p>
+
+  <div style="display:grid;grid-template-columns:1fr 360px;gap:24px;align-items:start">
+
+    <!-- Resumo -->
+    <div class="dash-card">
+      <div class="dash-card-title"><i class="bi bi-bag-check" style="color:var(--red)"></i> Resumo do pedido</div>
+      {% for item in order.items.all %}
+      <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f4f4f6">
+        <div>
+          <span style="font-weight:600;font-size:14px">{{ item.menu_item.name }}</span>
+          <span style="color:var(--muted);font-size:13px"> × {{ item.quantity }}</span>
+        </div>
+        <span style="font-weight:700;color:var(--red)">R$ {{ item.menu_item.price|floatformat:2 }}</span>
+      </div>
+      {% endfor %}
+      <div style="display:flex;justify-content:space-between;padding:16px;background:#f7f7f9;border-radius:12px;margin-top:16px">
+        <span style="font-weight:700;font-size:15px">Total</span>
+        <span style="font-weight:900;font-size:22px;color:var(--red)">R$ {{ order.total|floatformat:2 }}</span>
+      </div>
+
+      {% if order.delivery_address %}
+      <div style="margin-top:16px;padding:14px;background:#f0fdf4;border-radius:12px;border-left:4px solid #22c55e">
+        <p style="font-size:13px;font-weight:700;color:#166534;margin-bottom:4px"><i class="bi bi-geo-alt-fill"></i> Endereço de entrega</p>
+        <p style="font-size:13px;color:#166534;margin:0">{{ order.delivery_address }}{% if order.delivery_complement %}, {{ order.delivery_complement }}{% endif %}</p>
+        {% if order.delivery_neighborhood %}<p style="font-size:12px;color:#16a34a;margin:2px 0 0">{{ order.delivery_neighborhood }}{% if order.delivery_city %} — {{ order.delivery_city }}{% endif %}</p>{% endif %}
+      </div>
+      {% endif %}
     </div>
 
-    <a href="{% url 'restaurant_detail' order.restaurant.id %}" class="btn btn-success">
-        Simular Pagamento e Voltar
-    </a>
+    <!-- Pagamento -->
+    <div>
+      <div class="dash-card">
+        <div class="dash-card-title"><i class="bi bi-credit-card" style="color:var(--red)"></i> Forma de pagamento</div>
+
+        {% if mp_configured and mp_data %}
+        <!-- MercadoPago Checkout Pro -->
+        <div style="text-align:center;padding:20px 0">
+          <div style="background:linear-gradient(135deg,#009ee3,#00b1ea);border-radius:16px;padding:24px;color:#fff;margin-bottom:16px">
+            <div style="font-size:32px;margin-bottom:8px">💳</div>
+            <p style="font-weight:700;font-size:16px;margin-bottom:4px">MercadoPago</p>
+            <p style="font-size:13px;opacity:.85">PIX, cartão, boleto e mais</p>
+          </div>
+          <a href="{{ mp_data.init_point }}" class="btn-red" style="width:100%;justify-content:center;padding:16px;font-size:16px;text-align:center;display:flex">
+            <i class="bi bi-lock-fill"></i>&nbsp; Pagar com MercadoPago
+          </a>
+          <p style="font-size:11px;color:var(--muted);margin-top:10px"><i class="bi bi-shield-check"></i> Ambiente seguro MercadoPago</p>
+        </div>
+
+        {% else %}
+        <!-- Pagamento manual (fallback) -->
+        <form method="post" id="payment-form">
+          {% csrf_token %}
+          <input type="hidden" name="order_id" value="{{ order.id }}">
+          <div style="display:flex;flex-direction:column;gap:10px">
+
+            <label class="payment-method selected" id="pix-label">
+              <input type="radio" name="payment_method" value="pix" checked onchange="selectPayment(this)">
+              <div class="payment-icon" style="background:#e6faf0">💚</div>
+              <div><strong style="font-size:14px;display:block">PIX</strong><span style="font-size:12px;color:var(--muted)">Instantâneo · Sem taxa</span></div>
+            </label>
+
+            <label class="payment-method" id="credit-label">
+              <input type="radio" name="payment_method" value="credito" onchange="selectPayment(this)">
+              <div class="payment-icon" style="background:#eff6ff">💳</div>
+              <div><strong style="font-size:14px;display:block">Cartão de Crédito</strong><span style="font-size:12px;color:var(--muted)">Até 12x</span></div>
+            </label>
+
+            <label class="payment-method" id="debit-label">
+              <input type="radio" name="payment_method" value="debito" onchange="selectPayment(this)">
+              <div class="payment-icon" style="background:#fff7ed">💰</div>
+              <div><strong style="font-size:14px;display:block">Débito</strong><span style="font-size:12px;color:var(--muted)">Online</span></div>
+            </label>
+
+            <label class="payment-method" id="dinheiro-label">
+              <input type="radio" name="payment_method" value="dinheiro" onchange="selectPayment(this)">
+              <div class="payment-icon" style="background:#f9fafb">💵</div>
+              <div><strong style="font-size:14px;display:block">Dinheiro</strong><span style="font-size:12px;color:var(--muted)">Pague na entrega</span></div>
+            </label>
+          </div>
+
+          <div id="pix-detail" style="margin-top:16px;padding:16px;background:#f0fdf4;border-radius:12px;text-align:center">
+            <div style="font-size:32px;margin-bottom:8px">🟩</div>
+            <p style="font-size:13px;font-weight:700;color:#166534;margin-bottom:4px">Chave PIX</p>
+            <p style="font-size:13px;color:#16a34a"><strong>pagamentos@orderup.com.br</strong></p>
+            <p style="font-size:11px;color:var(--muted);margin-top:8px">⚠️ Configure o MercadoPago no .env para gerar QR Code automático</p>
+          </div>
+
+          <div id="card-detail" style="display:none;margin-top:16px">
+            <div class="form-group">
+              <label class="form-label-modern">Número do cartão</label>
+              <input type="text" class="form-control-modern" placeholder="0000 0000 0000 0000" maxlength="19" oninput="formatCard(this)">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div class="form-group">
+                <label class="form-label-modern">Validade</label>
+                <input type="text" class="form-control-modern" placeholder="MM/AA" maxlength="5">
+              </div>
+              <div class="form-group">
+                <label class="form-label-modern">CVV</label>
+                <input type="text" class="form-control-modern" placeholder="•••" maxlength="3">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label-modern">Nome no cartão</label>
+              <input type="text" class="form-control-modern" placeholder="NOME COMPLETO">
+            </div>
+          </div>
+
+          <button type="submit" class="btn-red" style="width:100%;justify-content:center;padding:16px;margin-top:16px;font-size:15px" onclick="confirmPayment(event)">
+            <i class="bi bi-lock-fill"></i> Confirmar · R$ {{ order.total|floatformat:2 }}
+          </button>
+        </form>
+        {% endif %}
+      </div>
+
+      <div style="display:flex;align-items:center;gap:8px;justify-content:center;font-size:12px;color:var(--muted);margin-top:12px">
+        <i class="bi bi-shield-lock-fill" style="color:#22c55e"></i>
+        Pagamento 100% seguro e criptografado
+      </div>
+    </div>
+  </div>
 </div>
+{% endblock %}
+{% block extra_js %}
+<script>
+function selectPayment(radio){
+  document.querySelectorAll('.payment-method').forEach(el => el.classList.remove('selected'));
+  radio.closest('.payment-method').classList.add('selected');
+  const val = radio.value;
+  document.getElementById('pix-detail').style.display = val === 'pix' ? 'block' : 'none';
+  document.getElementById('card-detail').style.display = (val === 'credito' || val === 'debito') ? 'block' : 'none';
+}
+function formatCard(input){
+  let v = input.value.replace(/\D/g,'').substring(0,16);
+  input.value = v.replace(/(.{4})/g,'$1 ').trim();
+}
+function confirmPayment(e){
+  e.preventDefault();
+  const btn = e.target;
+  btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Processando...';
+  btn.disabled = true;
+  setTimeout(() => window.location.href = '/orders/{{ order.id }}/', 1800);
+}
+</script>
 {% endblock %}

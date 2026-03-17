@@ -1,162 +1,173 @@
 {% extends 'base.html' %}
+{% block title %}Fazer Pedido — {{ restaurant.name }}{% endblock %}
 {% block content %}
+<div style="max-width:800px;margin:0 auto">
+  <a href="{% url 'restaurant_detail' restaurant.pk %}" class="btn-gray" style="margin-bottom:20px"><i class="bi bi-arrow-left"></i> Voltar</a>
+  <h1 style="font-size:26px;font-weight:800;letter-spacing:-1px;margin-bottom:4px">Fazer pedido</h1>
+  <p style="color:var(--muted);font-size:14px;margin-bottom:28px">{{ restaurant.name }}</p>
 
-<div class="container mt-5">
-    <div class="card shadow-lg p-4 rounded-4">
-        
-        <!-- 🔥 CABEÇALHO -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="mb-0">🛒 Fazer Pedido</h2>
-            
-            {% if request.user == restaurant.owner or request.user.is_superuser %}
-                <a href="{% url 'menu_create' restaurant.id %}" class="btn btn-outline-primary">
-                    ➕ Novo Produto
-                </a>
-            {% endif %}
-        </div>
+  <form method="post" id="order-form">
+    {% csrf_token %}
 
-        {% if not menu_items %}
-            <div class="alert alert-warning text-center">
-                <strong>Aviso:</strong> Este restaurante ainda não possui produtos disponíveis.
-            </div>
-        {% endif %}
-
-        <form method="post">
-            {% csrf_token %}
-
-            <div id="items-container">
-                <div class="row mb-3 item-row">
-
-                    <div class="col-md-5">
-                        <label>Produto:</label>
-                        <select name="menu_item" class="form-control product-select" required>
-                            <option value="">Selecione um produto</option>
-                            
-                            {% for item in menu_items %}
-                                <option 
-                                    value="{{ item.id }}"
-                                    data-image="{% if item.image %}{{ item.image.url }}{% endif %}"
-                                >
-                                    {{ item.name }} - R$ {{ item.price }}
-                                </option>
-                            {% endfor %}
-                        </select>
-
-                        <!-- 🔥 IMAGEM DO PRODUTO -->
-                        <div class="text-center mt-2">
-                            <img class="product-preview img-fluid rounded shadow-sm"
-                                 style="max-height:150px; display:none;">
-                        </div>
-                    </div>
-
-                    <div class="col-md-3">
-                        <label>Quantidade:</label>
-                        <input type="number" name="quantity" class="form-control" min="1" value="1" required>
-                    </div>
-
-                    <div class="col-md-2 d-flex align-items-end">
-                        <button type="button" class="btn btn-danger remove-item w-100">X</button>
-                    </div>
-
-                </div>
-            </div>
-
-            <button type="button" id="add-item" class="btn btn-secondary mb-3">
-                ➕ Adicionar Mais Um Produto
-            </button>
-
-            <div class="mb-3">
-                <label>Tipo do Pedido:</label>
-                {{ form.order_type }}
-            </div>
-
-            <div class="text-center mt-4">
-                <button type="submit" class="btn btn-success px-4" {% if not menu_items %}disabled{% endif %}>
-                    ✔ Confirmar Pedido
-                </button>
-
-                <a href="{% url 'restaurant_list' %}" class="btn btn-outline-secondary px-4 ms-2">
-                    Cancelar
-                </a>
-            </div>
-
-        </form>
-
+    <div class="dash-card" style="margin-bottom:20px">
+      <div class="dash-card-title"><i class="bi bi-truck" style="color:var(--red)"></i> Tipo de pedido</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <label style="border:2px solid #e5e5e5;border-radius:12px;padding:16px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:all .2s" id="local-label">
+          <input type="radio" name="order_type" value="LOCAL" checked onchange="selectType('local')">
+          <span style="font-size:24px">🪑</span>
+          <div>
+            <strong style="font-size:14px;display:block">Consumo no local</strong>
+            <span style="font-size:12px;color:var(--muted)">Comer no restaurante</span>
+          </div>
+        </label>
+        <label style="border:2px solid #e5e5e5;border-radius:12px;padding:16px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:all .2s" id="delivery-label">
+          <input type="radio" name="order_type" value="DELIVERY" onchange="selectType('delivery')">
+          <span style="font-size:24px">🛵</span>
+          <div>
+            <strong style="font-size:14px;display:block">Delivery</strong>
+            <span style="font-size:12px;color:var(--muted)">Receber em casa</span>
+          </div>
+        </label>
+      </div>
     </div>
+
+    <div class="dash-card">
+      <div class="dash-card-title"><i class="bi bi-menu-button-wide" style="color:var(--red)"></i> Escolha os itens</div>
+      <div style="display:flex;flex-direction:column;gap:14px" id="menu-items">
+        {% for item in menu_items %}
+        <div style="display:flex;align-items:center;gap:16px;padding:14px;border:1.5px solid #f0f0f0;border-radius:12px;transition:all .2s" id="item-row-{{ item.id }}">
+          {% if item.image %}
+            <img src="{{ item.image.url }}" alt="{{ item.name }}" style="width:64px;height:64px;border-radius:10px;object-fit:cover;flex-shrink:0">
+          {% else %}
+            <div style="width:64px;height:64px;border-radius:10px;background:#f4f4f6;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">🍽</div>
+          {% endif %}
+          <div style="flex:1">
+            <h4 style="font-size:15px;font-weight:700;margin-bottom:2px">{{ item.name }}</h4>
+            <p style="font-size:12px;color:var(--muted);margin-bottom:0">{{ item.description|truncatechars:60 }}</p>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <p style="font-size:16px;font-weight:800;color:var(--red);margin-bottom:8px">R$ {{ item.price|floatformat:2 }}</p>
+            <div style="display:flex;align-items:center;gap:6px">
+              <input type="hidden" name="menu_item" value="{{ item.id }}">
+              <button type="button" onclick="changeQty({{ item.id }}, -1)" style="width:28px;height:28px;border-radius:50%;border:1.5px solid #e5e5e5;background:#fff;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:#333">−</button>
+              <input type="number" name="quantity" id="qty-{{ item.id }}" value="0" min="0" max="20" style="width:42px;text-align:center;border:1.5px solid #e5e5e5;border-radius:8px;padding:4px;font-size:14px;font-weight:600" onchange="updateTotal()">
+              <button type="button" onclick="changeQty({{ item.id }}, 1)" style="width:28px;height:28px;border-radius:50%;background:var(--red);border:none;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:#fff">+</button>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Endereço de entrega (aparece só para DELIVERY) -->
+    <div id="delivery-address-section" class="dash-card" style="display:none;margin-top:16px">
+      <div class="dash-card-title"><i class="bi bi-geo-alt-fill" style="color:var(--red)"></i> Endereço de entrega</div>
+      <div style="display:grid;gap:14px">
+        <div>
+          <label class="form-label-modern">Endereço e número *</label>
+          <input type="text" name="delivery_address" id="delivery_address" class="form-control-modern" placeholder="Rua das Flores, 123">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <label class="form-label-modern">Complemento</label>
+            <input type="text" name="delivery_complement" class="form-control-modern" placeholder="Apto 42">
+          </div>
+          <div>
+            <label class="form-label-modern">CEP</label>
+            <input type="text" name="delivery_cep" id="delivery_cep" class="form-control-modern" placeholder="00000-000" maxlength="9" oninput="formatCEP(this)">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <label class="form-label-modern">Bairro</label>
+            <input type="text" name="delivery_neighborhood" id="delivery_neighborhood" class="form-control-modern" placeholder="Centro">
+          </div>
+          <div>
+            <label class="form-label-modern">Cidade</label>
+            <input type="text" name="delivery_city" id="delivery_city" class="form-control-modern" placeholder="Salvador">
+          </div>
+        </div>
+        <div>
+          <label class="form-label-modern">Telefone para contato</label>
+          <input type="text" name="delivery_phone" class="form-control-modern" placeholder="(71) 99999-9999">
+        </div>
+      </div>
+    </div>
+
+    <!-- Resumo flutuante -->
+    <div style="position:sticky;bottom:20px;background:#fff;border-radius:16px;padding:18px 24px;box-shadow:0 8px 40px rgba(0,0,0,0.15);display:flex;align-items:center;justify-content:space-between;border:1px solid #f0f0f0;margin-top:16px">
+      <div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:2px">Total do pedido</p>
+        <p style="font-size:24px;font-weight:900;color:var(--red);line-height:1" id="total-display">R$ 0,00</p>
+      </div>
+      <button type="submit" class="btn-red" style="padding:14px 28px;font-size:15px">
+        <i class="bi bi-bag-check-fill"></i> Confirmar pedido
+      </button>
+    </div>
+  </form>
 </div>
-
+{% endblock %}
+{% block extra_js %}
 <script>
+const prices = {
+  {% for item in menu_items %}
+  {{ item.id }}: {{ item.price }},
+  {% endfor %}
+};
 
-// 🔥 MOSTRAR IMAGEM AO SELECIONAR PRODUTO
-function activateImagePreview(row) {
-    const select = row.querySelector('.product-select');
-    const preview = row.querySelector('.product-preview');
-
-    select.addEventListener('change', function() {
-        const selected = this.options[this.selectedIndex];
-        const imageUrl = selected.getAttribute('data-image');
-
-        if (imageUrl) {
-            preview.src = imageUrl;
-            preview.style.display = "block";
-        } else {
-            preview.style.display = "none";
-        }
-    });
+function changeQty(id, delta){
+  const input = document.getElementById('qty-' + id);
+  const newVal = Math.max(0, (parseInt(input.value) || 0) + delta);
+  input.value = newVal;
+  const row = document.getElementById('item-row-' + id);
+  row.style.borderColor = newVal > 0 ? 'var(--red)' : '#f0f0f0';
+  row.style.background = newVal > 0 ? '#fff9f9' : '#fff';
+  updateTotal();
 }
 
-// Ativar na primeira linha
-document.querySelectorAll('.item-row').forEach(row => {
-    activateImagePreview(row);
-});
+function updateTotal(){
+  let total = 0;
+  document.querySelectorAll('[id^="qty-"]').forEach(input => {
+    const id = input.id.replace('qty-', '');
+    const qty = parseInt(input.value) || 0;
+    if(prices[id]) total += prices[id] * qty;
+  });
+  document.getElementById('total-display').textContent = 'R$ ' + total.toFixed(2).replace('.',',');
+}
 
-// 🔥 ADICIONAR NOVO ITEM
-document.getElementById('add-item').addEventListener('click', function() {
-    const container = document.getElementById('items-container');
-    const firstItem = document.querySelector('.item-row');
-    const newItem = firstItem.cloneNode(true);
+function selectType(type){
+  ['local','delivery'].forEach(t => {
+    const lbl = document.getElementById(t + '-label');
+    lbl.style.borderColor = t === type ? 'var(--red)' : '#e5e5e5';
+    lbl.style.background = t === type ? '#fff9f9' : '#fff';
+  });
+  const addrSection = document.getElementById('delivery-address-section');
+  if(addrSection) addrSection.style.display = type === 'delivery' ? 'block' : 'none';
+  const addrInput = document.getElementById('delivery_address');
+  if(addrInput) addrInput.required = type === 'delivery';
+}
 
-    newItem.querySelectorAll('input').forEach(input => {
-        input.value = 1;
-    });
+function formatCEP(input){
+  let v = input.value.replace(/\D/g,'').substring(0,8);
+  if(v.length > 5) v = v.substring(0,5) + '-' + v.substring(5);
+  input.value = v;
+  if(v.length === 9){
+    fetchCEP(v.replace('-',''));
+  }
+}
 
-    newItem.querySelectorAll('select').forEach(select => {
-        select.value = '';
-    });
-
-    newItem.querySelectorAll('img').forEach(img => {
-        img.style.display = "none";
-    });
-
-    container.appendChild(newItem);
-
-    activateImagePreview(newItem);
-});
-
-// 🔥 REMOVER ITEM
-document.addEventListener('click', function(e) {
-    if (e.target.classList.contains('remove-item')) {
-        const rows = document.querySelectorAll('.item-row');
-        if (rows.length > 1) {
-            e.target.closest('.item-row').remove();
-        }
+async function fetchCEP(cep){
+  try{
+    const res = await fetch('https://viacep.com.br/ws/' + cep + '/json/');
+    const data = await res.json();
+    if(!data.erro){
+      document.querySelector('[name=delivery_neighborhood]').value = data.bairro || '';
+      document.querySelector('[name=delivery_city]').value = data.localidade || '';
+      document.getElementById('delivery_address').placeholder = data.logradouro || 'Rua, número';
     }
-});
+  }catch(e){}
+}
 
-// 🔥 LIMPAR ITENS VAZIOS ANTES DE ENVIAR
-document.querySelector('form').addEventListener('submit', function(e) {
-    const rows = document.querySelectorAll('.item-row');
-
-    rows.forEach(row => {
-        const select = row.querySelector('select');
-        const input = row.querySelector('input');
-
-        if (!select.value || input.value <= 0) {
-            row.remove();
-        }
-    });
-});
-
+selectType('local');
 </script>
-
 {% endblock %}

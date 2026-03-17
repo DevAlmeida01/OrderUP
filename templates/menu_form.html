@@ -1,52 +1,22 @@
 {% extends 'base.html' %}
-
+{% block title %}Cardápio — OrderUP{% endblock %}
 {% block content %}
-
-<div class="container mt-5">
-    <div class="card p-4 shadow-sm">
-
-        <h3 class="mb-4">➕ Adicionar Produto ao Cardápio</h3>
-
-        <form method="POST" enctype="multipart/form-data">
-            {% csrf_token %}
-
-            <div class="mb-3">
-                <label class="form-label">Nome</label>
-                {{ form.name }}
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">Descrição</label>
-                {{ form.description }}
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">Preço</label>
-                {{ form.price }}
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">Imagem</label>
-                {{ form.image }}
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">Disponível</label>
-                {{ form.available }}
-            </div>
-
-            <button type="submit" class="btn btn-success">
-                💾 Salvar Produto
-            </button>
-
-            <a href="{% url 'restaurant_detail' restaurant.id %}" 
-               class="btn btn-secondary">
-               Cancelar
-            </a>
-
-        </form>
-
+<div class="form-card">
+  <h2>Item do cardápio</h2>
+  <p>{{ restaurant.name }}</p>
+  <form method="post" enctype="multipart/form-data" style="margin-top:24px">
+    {% csrf_token %}
+    {% for field in form %}
+    <div class="form-group">
+      <label class="form-label-modern">{{ field.label }}</label>
+      {{ field }}
+      {% if field.errors %}<span style="color:var(--red);font-size:12px">{{ field.errors|join:", " }}</span>{% endif %}
     </div>
+    {% endfor %}
+    <div style="display:flex;gap:10px">
+      <button type="submit" class="btn-red" style="flex:1;justify-content:center;padding:14px">Salvar item</button>
+      <a href="{% url 'restaurant_detail' restaurant.pk %}" class="btn-gray" style="padding:14px">Cancelar</a>
+    </div>
+  </form>
 </div>
-
 {% endblock %}

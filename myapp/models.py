@@ -140,12 +140,37 @@ class Order(models.Model):
         related_name='orders'
     )
 
+    PAYMENT_METHOD = [
+        ('pix', 'PIX'),
+        ('credito', 'Cartão de Crédito'),
+        ('debito', 'Cartão de Débito'),
+        ('dinheiro', 'Dinheiro'),
+    ]
+
     order_type = models.CharField(max_length=10, choices=ORDER_TYPE)
     status = models.CharField(
         max_length=20,
         choices=ORDER_STATUS,
         default='PENDING'
     )
+
+    # Endereço de entrega
+    delivery_address = models.CharField(max_length=300, blank=True, null=True)
+    delivery_complement = models.CharField(max_length=100, blank=True, null=True)
+    delivery_neighborhood = models.CharField(max_length=100, blank=True, null=True)
+    delivery_city = models.CharField(max_length=100, blank=True, null=True)
+    delivery_cep = models.CharField(max_length=10, blank=True, null=True)
+    delivery_phone = models.CharField(max_length=20, blank=True, null=True)
+
+    # Pagamento
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD, blank=True, null=True)
+    payment_id = models.CharField(max_length=200, blank=True, null=True)  # ID do MercadoPago
+    paid_at = models.DateTimeField(null=True, blank=True)
+
+    # Notificações
+    customer_notified = models.BooleanField(default=False)
+    last_status_update = models.DateTimeField(auto_now=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     @property
@@ -228,3 +253,45 @@ class Contact(models.Model):
 
     def __str__(self):
         return self.name
+
+# =========================
+# HISTÓRICO DE STATUS DO PEDIDO
+# =========================
+
+class OrderStatusLog(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='status_logs')
+    old_status = models.CharField(max_length=20, blank=True)
+    new_status = models.CharField(max_length=20)
+    changed_by = models.ForeignKey(
+        'auth.User', on_delete=models.SET_NULL, null=True, blank=True
+    )
+    message = models.CharField(max_length=200, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Pedido #{self.order.id}: {self.old_status} → {self.new_status}"
+
+
+# =========================
+# CONFIGURAÇÃO DE EMAIL DO RESTAURANTE
+# =========================
+
+class RestaurantSettings(models.Model):
+    restaurant = models.OneToOneField(Restaurant, on_delete=models.CASCADE, related_name='settings')
+    notification_email = models.EmailField(blank=True)
+    whatsapp_number = models.CharField(max_length=20, blank=True)
+    delivery_radius_km = models.DecimalField(max_digits=5, decimal_places=1, default=5.0)
+    min_order_value = models.DecimalField(max_digits=8, decimal_places=2, default=0)
+    delivery_fee = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+    estimated_delivery_minutes = models.PositiveIntegerField(default=45)
+    accepts_delivery = models.BooleanField(default=True)
+    accepts_local = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = 'Configurações do Restaurante'
+
+    def __str__(self):
+        return f"Config — {self.restaurant.name}"

@@ -1,142 +1,59 @@
 {% extends 'base.html' %}
-{% load static %}
-
+{% block title %}Restaurantes — OrderUP{% endblock %}
 {% block content %}
-
-<style>
-/* HEADER */
-.page-header {
-    background: linear-gradient(135deg, #111, #2a2a2a);
-    color: white;
-    padding: 60px 0;
-    border-radius: 0 0 40px 40px;
-    margin-bottom: 50px;
-}
-
-.page-header h1 {
-    font-weight: 800;
-}
-
-/* CARD RESTAURANTE */
-.restaurant-card {
-    border-radius: 22px;
-    overflow: hidden;
-    transition: all 0.3s ease;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
-}
-
-.restaurant-card:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 18px 40px rgba(0,0,0,0.18);
-}
-
-.restaurant-img {
-    height: 220px;
-    object-fit: cover;
-}
-
-.btn-main {
-    background: linear-gradient(90deg, #EA1D2C, #FF385C);
-    color: white;
-    border-radius: 50px;
-    font-weight: 600;
-    padding: 10px 24px;
-    border: none;
-}
-
-.btn-main:hover {
-    opacity: 0.9;
-    color: white;
-}
-
-.admin-buttons a {
-    border-radius: 50px;
-}
-</style>
-
-<!-- HEADER -->
-<div class="page-header text-center">
-    <div class="container">
-        <h1>🍽 Restaurantes</h1>
-        <p class="mb-0 opacity-75">
-            Descubra, peça e reserve com facilidade
-        </p>
-    </div>
+<div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:12px">
+  <div>
+    <div class="section-label">Explorar</div>
+    <h1 class="section-title" style="margin-bottom:0">Restaurantes</h1>
+    <p class="section-sub" style="margin-top:6px;margin-bottom:0">{{ restaurants.count }} disponíve{{ restaurants.count|pluralize:"l,is" }}</p>
+  </div>
+  {% if user.profile.user_type == 'empresa' or user.is_superuser %}
+  <a href="{% url 'restaurant_create' %}" class="btn-red"><i class="bi bi-plus-lg"></i> Cadastrar restaurante</a>
+  {% endif %}
 </div>
 
-<div class="container">
+<form method="GET" style="margin-bottom:28px">
+  <div style="position:relative;max-width:480px">
+    <i class="bi bi-search" style="position:absolute;left:16px;top:50%;transform:translateY(-50%);color:#aaa;font-size:16px"></i>
+    <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Buscar por nome ou descrição..."
+           style="width:100%;padding:12px 16px 12px 44px;border:1.5px solid #e5e5e5;border-radius:100px;font-size:14px;outline:none;font-family:'Inter',sans-serif"
+           oninput="this.form.submit()">
+  </div>
+</form>
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="fw-bold mb-0">Lista Disponível</h4>
-
-        {% if user.is_superuser %}
-        <a class="btn btn-main"
-           href="{% url 'restaurant_create' %}">
-            + Criar Restaurante
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:24px">
+  {% for restaurant in restaurants %}
+  <div class="card-rest fade-up" style="animation-delay:{{ forloop.counter0 }}0ms">
+    {% if restaurant.image %}
+      <img src="{{ restaurant.image.url }}" alt="{{ restaurant.name }}" class="card-rest-img">
+    {% else %}
+      <div class="card-rest-img-placeholder">🍽</div>
+    {% endif %}
+    <div class="card-rest-body">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px">
+        <h3 class="card-rest-name" style="margin-bottom:0">{{ restaurant.name }}</h3>
+        <span style="font-size:12px;color:#f59e0b;white-space:nowrap"><i class="bi bi-star-fill"></i> 4.8</span>
+      </div>
+      <p class="card-rest-desc">{{ restaurant.description }}</p>
+      <div class="card-rest-footer">
+        <a href="{% url 'restaurant_detail' restaurant.pk %}" class="btn-red">
+          <i class="bi bi-bag-fill"></i> Pedir agora
         </a>
+        {% if user == restaurant.owner or user.is_superuser %}
+        <div style="display:flex;gap:6px">
+          <a href="{% url 'restaurant_update' restaurant.pk %}" class="btn-gray" style="padding:8px 12px"><i class="bi bi-pencil"></i></a>
+          <a href="{% url 'restaurant_delete' restaurant.pk %}" class="btn-gray" style="padding:8px 12px;color:var(--red)"><i class="bi bi-trash"></i></a>
+        </div>
         {% endif %}
+      </div>
     </div>
-
-    <div class="row">
-        {% for restaurant in restaurants %}
-            <div class="col-lg-4 col-md-6 mb-4">
-                <div class="card restaurant-card h-100">
-
-                    {% if restaurant.image %}
-                        <img src="{{ restaurant.image.url }}"
-                             class="restaurant-img w-100">
-                    {% else %}
-                        <img src="{% static 'img/default-restaurant.jpg' %}"
-                             class="restaurant-img w-100">
-                    {% endif %}
-
-                    <div class="card-body d-flex flex-column">
-
-                        <h5 class="fw-bold">
-                            {{ restaurant.name }}
-                        </h5>
-
-                        <p class="text-muted small">
-                            {{ restaurant.description|truncatewords:18 }}
-                        </p>
-
-                        <a href="{% url 'restaurant_detail' restaurant.id %}"
-                           class="btn btn-dark mt-auto rounded-pill">
-                            Ver Restaurante
-                        </a>
-
-                        {% if user.is_superuser %}
-                        <div class="admin-buttons mt-3 d-flex gap-2">
-                            <a href="{% url 'restaurant_update' restaurant.id %}"
-                               class="btn btn-outline-primary btn-sm w-50">
-                                Editar
-                            </a>
-
-                            <a href="{% url 'restaurant_delete' restaurant.id %}"
-                               class="btn btn-outline-danger btn-sm w-50">
-                                Excluir
-                            </a>
-                        </div>
-                        {% endif %}
-
-                    </div>
-                </div>
-            </div>
-        {% empty %}
-            <div class="text-center py-5">
-                <h5 class="text-muted">
-                    Nenhum restaurante cadastrado ainda.
-                </h5>
-                {% if user.is_superuser %}
-                <a class="btn btn-main mt-3"
-                   href="{% url 'restaurant_create' %}">
-                    Criar Primeiro Restaurante
-                </a>
-                {% endif %}
-            </div>
-        {% endfor %}
-    </div>
-
+  </div>
+  {% empty %}
+  <div style="grid-column:1/-1;text-align:center;padding:80px 20px">
+    <div style="font-size:56px;margin-bottom:16px">🔍</div>
+    <h3 style="font-size:20px;font-weight:700;margin-bottom:8px">Nenhum restaurante encontrado</h3>
+    <p style="color:var(--muted)">Tente buscar com outros termos.</p>
+  </div>
+  {% endfor %}
 </div>
-
 {% endblock %}

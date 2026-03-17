@@ -1,121 +1,119 @@
 {% extends 'base.html' %}
+{% block title %}Pedido #{{ order.id }} — OrderUP{% endblock %}
+{% block extra_head %}
+<script src="https://unpkg.com/htmx.org@1.9.12/dist/htmx.min.js"></script>
+{% endblock %}
 {% block content %}
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow-lg border-0 rounded-4">
-                <div class="card-header bg-success text-white py-3 text-center rounded-top-4">
-                    <h4 class="mb-0">🧾 Detalhes do Pedido #{{ order.id }}</h4>
-                </div>
+<div style="max-width:680px;margin:0 auto">
+  <a href="{% url 'my_dashboard' %}" class="btn-gray" style="margin-bottom:20px"><i class="bi bi-arrow-left"></i> Voltar</a>
 
-                <div class="card-body p-5">
-
-                    <!-- INFORMAÇÕES GERAIS -->
-                    <div class="row mb-4">
-                        <div class="col-sm-6">
-                            <h6 class="text-muted mb-1">Restaurante:</h6>
-                            <h5 class="fw-bold">{{ order.restaurant.name }}</h5>
-                        </div>
-                        <div class="col-sm-6 text-sm-end mt-3 mt-sm-0">
-                            <h6 class="text-muted mb-1">Data do Pedido:</h6>
-                            <h5>{{ order.created_at|date:"d/m/Y às H:i" }}</h5>
-                        </div>
-                    </div>
-
-                    <!-- STATUS -->
-                    <div class="mb-4">
-                        <h6 class="text-muted mb-1">Status Atual:</h6>
-
-                        {% if order.status == "Pendente" %}
-                            <span class="badge bg-warning text-dark px-3 py-2">{{ order.status }}</span>
-                        {% elif order.status == "Em preparo" %}
-                            <span class="badge bg-primary px-3 py-2">{{ order.status }}</span>
-                        {% elif order.status == "Saiu para entrega" %}
-                            <span class="badge bg-info text-dark px-3 py-2">{{ order.status }}</span>
-                        {% elif order.status == "Finalizado" %}
-                            <span class="badge bg-success px-3 py-2">{{ order.status }}</span>
-                        {% else %}
-                            <span class="badge bg-secondary px-3 py-2">{{ order.status }}</span>
-                        {% endif %}
-                    </div>
-
-                    <!-- ALTERAR STATUS (APENAS DONO) -->
-                    {% if user == order.restaurant.owner or user.is_superuser %}
-                    <div class="card bg-light p-3 mb-4 rounded-3">
-                        <form method="POST">
-                            {% csrf_token %}
-                            <label class="fw-bold mb-2">Alterar Status:</label>
-                            <div class="d-flex gap-2">
-                                <select name="status" class="form-select">
-                                    <option value="Pendente">Pendente</option>
-                                    <option value="Em preparo">Em preparo</option>
-                                    <option value="Saiu para entrega">Saiu para entrega</option>
-                                    <option value="Finalizado">Finalizado</option>
-                                </select>
-                                <button class="btn btn-success">
-                                    Atualizar
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                    {% endif %}
-
-                    <!-- ITENS -->
-                    <h5 class="fw-bold border-bottom pb-2 mb-3">Itens Consumidos</h5>
-                    <div class="table-responsive">
-                        <table class="table table-borderless align-middle">
-                            <thead class="text-muted">
-                                <tr>
-                                    <th>Qtd</th>
-                                    <th>Produto</th>
-                                    <th class="text-end">Preço Unit.</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for item in order.items.all %}
-                                <tr class="border-bottom">
-                                    <td>
-                                        <span class="badge bg-secondary rounded-pill px-3">
-                                            {{ item.quantity }}x
-                                        </span>
-                                    </td>
-                                    <td class="fw-bold">
-                                        {{ item.menu_item.name }}
-                                    </td>
-                                    <td class="text-end text-success">
-                                        R$ {{ item.menu_item.price }}
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="3" class="text-center text-muted">
-                                        Nenhum item encontrado.
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- TOTAL -->
-                    <div class="d-flex justify-content-between align-items-center bg-light p-3 rounded-3 mt-4">
-                        <h4 class="m-0 text-muted">Total:</h4>
-                        <h3 class="m-0 text-success fw-bold">
-                            R$ {{ order.total|floatformat:2 }}
-                        </h3>
-                    </div>
-
-                    <!-- BOTÃO VOLTAR -->
-                    <div class="d-grid mt-4">
-                        <a href="{% url 'restaurant_detail' order.restaurant.id %}"
-                           class="btn btn-outline-dark">
-                           ⬅️ Voltar
-                        </a>
-                    </div>
-
-                </div>
-            </div>
-        </div>
+  <div class="dash-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px">
+      <div>
+        <h2 style="font-size:22px;font-weight:800;letter-spacing:-1px">Pedido #{{ order.id }}</h2>
+        <p style="color:var(--muted);font-size:13px;margin-top:4px">
+          {{ order.restaurant.name }} · {{ order.created_at|date:"d/m/Y H:i" }}
+        </p>
+      </div>
+      <!-- Status com HTMX polling (atualiza a cada 10s automaticamente) -->
+      {% include 'partials/order_status_badge.html' %}
     </div>
+
+    <!-- Indicador de atualização automática -->
+    {% if order.status != 'DELIVERED' and order.status != 'CANCELLED' %}
+    <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:#f0fdf4;border-radius:10px;margin-bottom:20px;font-size:13px;color:#166534">
+      <div style="width:8px;height:8px;border-radius:50%;background:#22c55e;animation:pulse 2s infinite"></div>
+      Status atualizado automaticamente a cada 10 segundos
+    </div>
+    <style>@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}</style>
+    {% endif %}
+
+    <!-- Timeline de status -->
+    <div style="display:flex;align-items:center;overflow-x:auto;padding-bottom:8px;margin-bottom:24px;gap:0">
+      {% for value, label in order.ORDER_STATUS %}
+      <div style="display:flex;align-items:center;flex-shrink:0">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+          <div style="width:34px;height:34px;border-radius:50%;
+            background:{% if order.status == value %}var(--red){% elif forloop.counter <= order.ORDER_STATUS|length %}{% if value == 'PAID' and order.status in 'PAID,PREPARING,READY,DELIVERED' %}#22c55e{% elif value == 'PREPARING' and order.status in 'PREPARING,READY,DELIVERED' %}#22c55e{% elif value == 'READY' and order.status in 'READY,DELIVERED' %}#22c55e{% elif value == 'DELIVERED' and order.status == 'DELIVERED' %}#22c55e{% else %}#f0f0f0{% endif %}{% endif %};
+            display:flex;align-items:center;justify-content:center;transition:all .3s">
+            <i class="bi bi-check-lg" style="color:#fff;font-size:14px"></i>
+          </div>
+          <span style="font-size:10px;color:var(--muted);white-space:nowrap;max-width:70px;text-align:center">{{ label }}</span>
+        </div>
+        {% if not forloop.last %}
+        <div style="height:2px;width:32px;background:#f0f0f0;margin:0 3px;margin-bottom:22px;flex-shrink:0"></div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Itens -->
+    <div class="dash-card-title"><i class="bi bi-bag" style="color:var(--red)"></i> Itens do pedido</div>
+    {% for item in order.items.all %}
+    <div style="display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid #f4f4f6">
+      {% if item.menu_item.image %}
+        <img src="{{ item.menu_item.image.url }}" style="width:48px;height:48px;border-radius:10px;object-fit:cover;flex-shrink:0">
+      {% else %}
+        <div style="width:48px;height:48px;border-radius:10px;background:#f4f4f6;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🍽</div>
+      {% endif %}
+      <div style="flex:1">
+        <span style="font-weight:600;font-size:14px">{{ item.menu_item.name }}</span>
+        <span style="color:var(--muted);font-size:13px"> × {{ item.quantity }}</span>
+      </div>
+      <span style="font-weight:700;color:var(--red)">R$ {{ item.menu_item.price|floatformat:2 }}</span>
+    </div>
+    {% endfor %}
+    <div style="display:flex;justify-content:space-between;padding:16px;background:#f7f7f9;border-radius:12px;margin-top:16px">
+      <strong>Total</strong>
+      <strong style="color:var(--red);font-size:20px">R$ {{ order.total|floatformat:2 }}</strong>
+    </div>
+
+    <!-- Endereço de entrega -->
+    {% if order.delivery_address %}
+    <div style="margin-top:20px;padding:16px;background:#f0fdf4;border-radius:12px;border-left:4px solid #22c55e">
+      <p style="font-size:13px;font-weight:700;color:#166534;margin-bottom:6px"><i class="bi bi-geo-alt-fill"></i> Endereço de entrega</p>
+      <p style="font-size:14px;margin-bottom:2px">{{ order.delivery_address }}{% if order.delivery_complement %}, {{ order.delivery_complement }}{% endif %}</p>
+      {% if order.delivery_neighborhood %}<p style="font-size:13px;color:var(--muted);margin:0">{{ order.delivery_neighborhood }}{% if order.delivery_city %} — {{ order.delivery_city }}{% endif %}{% if order.delivery_cep %} · CEP {{ order.delivery_cep }}{% endif %}</p>{% endif %}
+      {% if order.delivery_phone %}<p style="font-size:13px;color:var(--muted);margin-top:4px"><i class="bi bi-telephone"></i> {{ order.delivery_phone }}</p>{% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Histórico de status -->
+    {% if order.status_logs.all %}
+    <div style="margin-top:24px">
+      <p style="font-size:14px;font-weight:700;margin-bottom:12px;color:#333"><i class="bi bi-clock-history"></i> Histórico</p>
+      {% for log in order.status_logs.all %}
+      <div style="display:flex;gap:12px;padding:8px 0;border-bottom:1px solid #f4f4f6;font-size:13px">
+        <span style="color:var(--muted);flex-shrink:0">{{ log.created_at|date:"d/m H:i" }}</span>
+        <span>{% if log.old_status %}<span style="color:var(--muted)">{{ log.old_status }}</span> → {% endif %}<strong>{{ log.new_status }}</strong></span>
+        {% if log.message %}<span style="color:var(--muted)">· {{ log.message }}</span>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Ação dono: atualizar status -->
+    {% if user == order.restaurant.owner or user.is_superuser %}
+    <div style="margin-top:24px;padding-top:20px;border-top:1px solid #f0f0f0">
+      <p style="font-size:14px;font-weight:700;margin-bottom:12px"><i class="bi bi-gear"></i> Atualizar status</p>
+      <form method="post" action="{% url 'order_update_status' order.pk %}" style="display:flex;gap:10px;flex-wrap:wrap">
+        {% csrf_token %}
+        <select name="status" class="form-control-modern" style="flex:1">
+          {% for value, label in order.ORDER_STATUS %}
+          <option value="{{ value }}" {% if order.status == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn-red">Atualizar</button>
+      </form>
+    </div>
+    {% endif %}
+
+    <!-- Botão pagar se pendente -->
+    {% if order.status == 'PENDING' and user == order.customer %}
+    <a href="{% url 'payment_area' order.id %}" class="btn-red" style="display:flex;justify-content:center;margin-top:20px;padding:14px">
+      <i class="bi bi-credit-card"></i>&nbsp;Ir para pagamento
+    </a>
+    {% endif %}
+  </div>
 </div>
 {% endblock %}

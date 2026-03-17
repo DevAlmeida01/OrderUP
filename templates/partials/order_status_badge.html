@@ -1,0 +1,16 @@
+<div id="status-wrap"
+     hx-get="/orders/{{ order.pk }}/status-check/"
+     hx-trigger="every 10s"
+     hx-swap="outerHTML"
+     style="display:inline-block">
+  <span class="badge-status badge-{{ order.status|lower }}" style="font-size:15px;padding:10px 20px">
+    {% if order.status == 'PENDING' %}⏳
+    {% elif order.status == 'PAID' %}💳
+    {% elif order.status == 'PREPARING' %}👨‍🍳
+    {% elif order.status == 'READY' %}✅
+    {% elif order.status == 'DELIVERED' %}🎉
+    {% elif order.status == 'CANCELLED' %}❌
+    {% endif %}
+    {{ order.get_status_display }}
+  </span>
+</div>

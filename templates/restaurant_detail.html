@@ -1,220 +1,74 @@
 {% extends 'base.html' %}
-
+{% block title %}{{ restaurant.name }} — OrderUP{% endblock %}
 {% block content %}
-
-<div class="container mt-4">
-
-    <!-- INFORMAÇÕES DO RESTAURANTE -->
-    <div class="card shadow-lg mb-4 rounded-4">
-        <div class="card-body text-center">
-            <h2 class="mb-2">🍽 {{ restaurant.name }}</h2>
-            <p class="text-muted">{{ restaurant.description }}</p>
-
-            {% if user == restaurant.owner %}
-                <a class="btn btn-sm btn-primary mt-2"
-                   href="{% url 'menu_create' restaurant.id %}">
-                   ➕ Adicionar Produto
-                </a>
-            {% endif %}
-        </div>
-    </div>
-
-
-    <!-- ========================= -->
-    <!-- CARDÁPIO -->
-    <!-- ========================= -->
-    <div class="card shadow-sm mb-4 rounded-4">
-        <div class="card-header bg-dark text-white">
-            📋 Cardápio
-        </div>
-        <div class="card-body">
-
-            <div class="row">
-                {% for item in menu_items %}
-                <div class="col-md-4 mb-4">
-
-                    <div class="card h-100 shadow-sm">
-
-                        {% if item.image %}
-                            <img src="{{ item.image.url }}"
-                                 class="card-img-top"
-                                 style="height:200px; object-fit:cover;">
-                        {% endif %}
-
-                        <div class="card-body d-flex flex-column">
-
-                            <h5>{{ item.name }}</h5>
-                            <p class="text-muted">{{ item.description }}</p>
-                            <strong class="mb-2">R$ {{ item.price }}</strong>
-
-                            {% if user == restaurant.owner %}
-                                <!-- DONO -->
-                                <a href="{% url 'menu_update' restaurant.id item.id %}"
-                                   class="btn btn-warning btn-sm mb-2">
-                                   ✏️ Editar
-                                </a>
-
-                                <a href="{% url 'menu_delete' restaurant.id item.id %}"
-                                   class="btn btn-danger btn-sm">
-                                   🗑 Excluir
-                                </a>
-
-                            {% else %}
-                                <!-- CLIENTE -->
-                                <a href="{% url 'order_create' restaurant.id %}"
-                                   class="btn btn-success btn-sm mt-auto">
-                                   🛒 Fazer Pedido
-                                </a>
-                            {% endif %}
-
-                        </div>
-
-                    </div>
-
-                </div>
-                {% empty %}
-                    <p class="text-muted text-center">
-                        Nenhum produto cadastrado ainda.
-                    </p>
-                {% endfor %}
-            </div>
-
-        </div>
-    </div>
-
-
-    <div class="row">
-
-        <!-- ========================= -->
-        <!-- PEDIDOS -->
-        <!-- ========================= -->
-        <div class="col-md-6">
-            <div class="card shadow-sm mb-4 rounded-4">
-                <div class="card-header bg-primary text-white">
-                    🛒 Pedidos
-                </div>
-                <div class="card-body">
-
-                    <a class="btn btn-success btn-sm mb-3"
-                       href="{% url 'order_create' restaurant.id %}">
-                        + Novo Pedido
-                    </a>
-
-                    <ul class="list-group">
-                        {% for order in orders %}
-                            <li class="list-group-item">
-
-                                <div class="d-flex justify-content-between align-items-start">
-                                    
-                                    <!-- Informações do Pedido -->
-                                    <div>
-                                        <strong>{{ order.customer.username }}</strong>
-                                        
-                                        <!-- Etiquetas de Status e Tipo de Pedido -->
-                                        <span class="badge bg-secondary ms-1">{{ order.get_status_display }}</span>
-                                        <span class="badge bg-info text-dark ms-1">{{ order.get_order_type_display }}</span>
-
-                                        <ul class="mt-2 mb-1">
-                                            {% for item in order.items.all %}
-                                                <li>
-                                                    {{ item.menu_item.name }} 
-                                                    (x{{ item.quantity }})
-                                                </li>
-                                            {% endfor %}
-                                        </ul>
-
-                                        <strong>Total: R$ {{ order.total }}</strong>
-                                    </div>
-
-                                    <!-- Ações (Excluir e Mudar Status) -->
-                                    <div class="text-end">
-                                        <a class="btn btn-outline-danger btn-sm mb-2"
-                                           href="{% url 'order_delete' order.pk %}">
-                                            ❌ Excluir
-                                        </a>
-
-                                        <!-- 🔥 FORMULÁRIO DE MUDAR STATUS (Apenas para o Dono) -->
-                                        {% if user == restaurant.owner or user.is_superuser %}
-                                        <form method="POST" action="{% url 'order_update_status' order.pk %}">
-                                            {% csrf_token %}
-                                            <div class="input-group input-group-sm mt-1">
-                                                <select name="status" class="form-select" style="min-width: 130px;">
-                                                    <option value="PENDING" {% if order.status == 'PENDING' %}selected{% endif %}>Aguardando</option>
-                                                    <option value="PAID" {% if order.status == 'PAID' %}selected{% endif %}>Pago</option>
-                                                    <option value="PREPARING" {% if order.status == 'PREPARING' %}selected{% endif %}>Em preparo</option>
-                                                    <option value="READY" {% if order.status == 'READY' %}selected{% endif %}>Pronto</option>
-                                                    <option value="DELIVERED" {% if order.status == 'DELIVERED' %}selected{% endif %}>Entregue</option>
-                                                    <option value="CANCELLED" {% if order.status == 'CANCELLED' %}selected{% endif %}>Cancelado</option>
-                                                </select>
-                                                <button type="submit" class="btn btn-primary">✔</button>
-                                            </div>
-                                        </form>
-                                        {% endif %}
-
-                                    </div>
-                                </div>
-
-                            </li>
-                        {% empty %}
-                            <li class="list-group-item text-muted text-center">
-                                Nenhum pedido realizado ainda.
-                            </li>
-                        {% endfor %}
-                    </ul>
-
-                </div>
-            </div>
-        </div>
-
-        <!-- ========================= -->
-        <!-- RESERVAS -->
-        <!-- ========================= -->
-        <div class="col-md-6">
-            <div class="card shadow-sm mb-4 rounded-4">
-                <div class="card-header bg-warning text-dark">
-                    📅 Reservas
-                </div>
-                <div class="card-body">
-
-                    <a class="btn btn-success btn-sm mb-3"
-                       href="{% url 'reservation_create' restaurant.id %}">
-                        + Nova Reserva
-                    </a>
-
-                    <ul class="list-group">
-                        {% for reservation in reservations %}
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <div>
-                                    <strong>{{ reservation.customer.username }}</strong>
-                                    <br>
-                                    {{ reservation.date }} às {{ reservation.time }}
-                                </div>
-
-                                <a class="btn btn-outline-danger btn-sm"
-                                   href="{% url 'reservation_delete' reservation.pk %}">
-                                    ❌ Excluir
-                                </a>
-                            </li>
-                        {% empty %}
-                            <li class="list-group-item text-muted text-center">
-                                Nenhuma reserva realizada ainda.
-                            </li>
-                        {% endfor %}
-                    </ul>
-
-                </div>
-            </div>
-        </div>
-
-    </div>
-
-    <div class="text-center mt-3 mb-5">
-        <a class="btn btn-secondary px-4"
-           href="{% url 'restaurant_list' %}">
-           ← Voltar
-        </a>
-    </div>
-
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;flex-wrap:wrap">
+  <a href="{% url 'restaurant_list' %}" class="btn-gray"><i class="bi bi-arrow-left"></i> Restaurantes</a>
+  {% if user == restaurant.owner or user.is_superuser %}
+  <a href="{% url 'restaurant_update' restaurant.pk %}" class="btn-outline-red"><i class="bi bi-pencil"></i> Editar</a>
+  <a href="{% url 'menu_create' restaurant.id %}" class="btn-red"><i class="bi bi-plus-lg"></i> Adicionar item</a>
+  {% endif %}
 </div>
 
+<div style="display:grid;grid-template-columns:1fr 340px;gap:28px;align-items:start">
+  <div>
+    {% if restaurant.image %}
+      <img src="{{ restaurant.image.url }}" alt="{{ restaurant.name }}" style="width:100%;height:280px;object-fit:cover;border-radius:20px;margin-bottom:24px">
+    {% endif %}
+    <h1 style="font-size:28px;font-weight:800;letter-spacing:-1px;margin-bottom:8px">{{ restaurant.name }}</h1>
+    <p style="color:var(--muted);font-size:15px;margin-bottom:28px">{{ restaurant.description }}</p>
+
+    <div class="dash-card">
+      <div class="dash-card-title"><i class="bi bi-menu-button-wide" style="color:var(--red)"></i> Cardápio</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px">
+        {% for item in menu_items %}
+        <div style="border:1.5px solid #f0f0f0;border-radius:12px;overflow:hidden;transition:all .2s" class="card-rest">
+          {% if item.image %}<img src="{{ item.image.url }}" style="width:100%;height:120px;object-fit:cover">{% endif %}
+          <div style="padding:14px">
+            <h4 style="font-size:14px;font-weight:700;margin-bottom:4px">{{ item.name }}</h4>
+            <p style="font-size:12px;color:var(--muted);margin-bottom:10px">{{ item.description|truncatechars:50 }}</p>
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <span style="font-weight:800;color:var(--red);font-size:15px">R$ {{ item.price|floatformat:2 }}</span>
+              {% if user == restaurant.owner or user.is_superuser %}
+              <div style="display:flex;gap:4px">
+                <a href="{% url 'menu_update' restaurant.id item.id %}" class="btn-gray" style="padding:5px 10px;font-size:12px"><i class="bi bi-pencil"></i></a>
+                <a href="{% url 'menu_delete' restaurant.id item.id %}" class="btn-gray" style="padding:5px 10px;font-size:12px;color:var(--red)"><i class="bi bi-trash"></i></a>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% empty %}
+        <p style="color:var(--muted);grid-column:1/-1;text-align:center;padding:24px">Nenhum item no cardápio.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="dash-card" style="position:sticky;top:90px">
+      <div class="dash-card-title"><i class="bi bi-bag-plus" style="color:var(--red)"></i> Fazer pedido</div>
+      <a href="{% url 'order_create' restaurant.id %}" class="btn-red" style="width:100%;justify-content:center;padding:14px;margin-bottom:12px">
+        <i class="bi bi-bag-fill"></i> Montar pedido
+      </a>
+      <a href="{% url 'reservation_create' restaurant.id %}" class="btn-outline-red" style="width:100%;justify-content:center;padding:14px">
+        <i class="bi bi-calendar-plus"></i> Reservar mesa
+      </a>
+
+      {% if orders %}
+      <div style="margin-top:20px;padding-top:20px;border-top:1px solid #f0f0f0">
+        <p style="font-size:13px;font-weight:700;margin-bottom:12px;color:#333">Pedidos recentes</p>
+        {% for order in orders|slice:":3" %}
+        <div style="padding:10px;background:#f7f7f9;border-radius:10px;margin-bottom:8px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:13px;font-weight:600">#{{ order.id }}</span>
+            <span class="badge-status badge-{{ order.status|lower }}" style="font-size:11px">{{ order.get_status_display }}</span>
+          </div>
+          <p style="font-size:12px;color:var(--muted);margin-top:4px;margin-bottom:0">R$ {{ order.total|floatformat:2 }}</p>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
 {% endblock %}

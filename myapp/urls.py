@@ -115,4 +115,17 @@ urlpatterns = [
     # CHAT IA (NOVA ROTA)
     # =========================
     path('chat-ai/', views.chat_ai, name='chat_ai'),
+
+    # =========================
+    # PAGAMENTO MERCADOPAGO
+    # =========================
+    path('pedido/<int:order_id>/sucesso/', views.payment_success, name='payment_success'),
+    path('pedido/<int:order_id>/falha/', views.payment_failure, name='payment_failure'),
+    path('pedido/<int:order_id>/pendente/', views.payment_pending, name='payment_pending'),
+    path('webhook/mercadopago/', views.mercadopago_webhook, name='mercadopago_webhook'),
+
+    # =========================
+    # STATUS EM TEMPO REAL
+    # =========================
+    path('orders/<int:pk>/status-check/', views.order_status_check, name='order_status_check'),
 ]

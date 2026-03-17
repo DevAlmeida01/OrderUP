@@ -1,43 +1,22 @@
 {% extends 'base.html' %}
-
+{% block title %}Tipo de Conta — OrderUP{% endblock %}
 {% block content %}
-
-<div class="container mt-5">
-
-    <div class="text-center mb-5">
-        <h1 class="fw-bold">Cliente / Empresa</h1>
-        <p class="lead mt-3">
-            Quer divulgar seu restaurante no nosso sistema?
-            Cadastre sua empresa e comece a receber reservas e pedidos online.
-        </p>
+<div style="max-width:800px;margin:0 auto;text-align:center;padding:40px 0">
+  <h1 style="font-size:36px;font-weight:800;letter-spacing:-1px;margin-bottom:12px">Escolha seu perfil</h1>
+  <p style="color:var(--muted);font-size:16px;margin-bottom:48px">Cada tipo de conta tem acesso a funcionalidades diferentes.</p>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+    <div style="background:#fff;border:2px solid #f0f0f0;border-radius:20px;padding:36px;text-align:center;transition:all .3s" onmouseover="this.style.borderColor='var(--red)'" onmouseout="this.style.borderColor='#f0f0f0'">
+      <div style="font-size:52px;margin-bottom:16px">👤</div>
+      <h2 style="font-size:20px;font-weight:800;margin-bottom:10px">Cliente</h2>
+      <p style="color:var(--muted);font-size:14px;margin-bottom:24px">Faça pedidos, reserve mesas e acompanhe seus pedidos em tempo real.</p>
+      <a href="{% url 'register' %}" class="btn-red" style="width:100%;justify-content:center">Criar conta cliente</a>
     </div>
-
-    <div class="card shadow-lg p-4 text-center">
-
-        <h4 class="mb-3">Como funciona?</h4>
-
-        <p>
-            1️⃣ Crie sua conta como usuário <br>
-            2️⃣ Cadastre seu restaurante <br>
-            3️⃣ Adicione seu cardápio digital <br>
-            4️⃣ Comece a receber pedidos e reservas automaticamente
-        </p>
-
-        {% if user.is_authenticated %}
-            <form method="post">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-success btn-lg mt-3">
-                    Cadastre seu Restaurante
-                </button>
-            </form>
-        {% else %}
-            <a href="{% url 'login' %}" class="btn btn-primary btn-lg mt-3">
-                Faça login para cadastrar
-            </a>
-        {% endif %}
-
+    <div style="background:#fff;border:2px solid #f0f0f0;border-radius:20px;padding:36px;text-align:center;transition:all .3s" onmouseover="this.style.borderColor='var(--red)'" onmouseout="this.style.borderColor='#f0f0f0'">
+      <div style="font-size:52px;margin-bottom:16px">🏪</div>
+      <h2 style="font-size:20px;font-weight:800;margin-bottom:10px">Empresa</h2>
+      <p style="color:var(--muted);font-size:14px;margin-bottom:24px">Cadastre seu restaurante, gerencie cardápio, pedidos e reservas.</p>
+      <a href="{% url 'register' %}" class="btn-outline-red" style="width:100%;justify-content:center">Criar conta empresa</a>
     </div>
-
+  </div>
 </div>
-
 {% endblock %}

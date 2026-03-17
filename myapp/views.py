@@ -1,30 +1,41 @@
 import json
 import os
+import logging
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.contrib import messages
 from django.contrib.auth import login
 from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
 from dotenv import load_dotenv
-from groq import Groq
 
-# Modelos e Forms do app
-from .models import Restaurant, Order, Reservation, MenuItem, OrderItem, Contact
+from .models import Restaurant, Order, Reservation, MenuItem, OrderItem, Contact, OrderStatusLog
 from .forms import (
     CustomUserCreationForm,
     RestaurantForm,
     OrderForm,
     ReservationForm,
     MenuItemForm,
-    ContactForm
+    ContactForm,
+    DeliveryAddressForm,
 )
+from .email_service import EmailService
+from .payment_service import PaymentService
 
-# Carrega as variáveis do arquivo .env
 load_dotenv()
 
-# Configuração da API do Groq usando a chave do ambiente
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+logger = logging.getLogger(__name__)
+
+# Groq client
+try:
+    from groq import Groq
+    _groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+except Exception:
+    _groq_client = None
+
+client = _groq_client
 
 # =========================
 # HOME
@@ -208,16 +219,46 @@ def order_create(request, restaurant_id):
             messages.error(request, "Selecione pelo menos um produto.")
             return redirect('order_create', restaurant_id=restaurant.id)
 
+        # Endereço de entrega
+        delivery_address = None
+        if order_type == 'DELIVERY':
+            delivery_address = request.POST.get('delivery_address', '').strip()
+            if not delivery_address:
+                messages.error(request, 'Informe o endereço de entrega.')
+                return redirect('order_create', restaurant_id=restaurant.id)
+
         order = Order.objects.create(
             restaurant=restaurant,
             customer=request.user,
             order_type=order_type,
-            status='PENDING'
+            status='PENDING',
+            delivery_address=delivery_address,
+            delivery_complement=request.POST.get('delivery_complement', ''),
+            delivery_neighborhood=request.POST.get('delivery_neighborhood', ''),
+            delivery_city=request.POST.get('delivery_city', ''),
+            delivery_cep=request.POST.get('delivery_cep', ''),
+            delivery_phone=request.POST.get('delivery_phone', ''),
         )
 
         for item_id, qty in valid_items:
             menu_item = get_object_or_404(MenuItem, id=item_id, restaurant=restaurant)
             OrderItem.objects.create(order=order, menu_item=menu_item, quantity=int(qty))
+
+        # Log de criação
+        OrderStatusLog.objects.create(
+            order=order,
+            old_status='',
+            new_status='PENDING',
+            changed_by=request.user,
+            message='Pedido criado'
+        )
+
+        # Notificações por email
+        try:
+            EmailService.order_confirmed(order)
+            EmailService.new_order_to_restaurant(order)
+        except Exception as e:
+            logger.error(f'Erro ao enviar email de confirmação: {e}')
 
         if order_type == 'DELIVERY':
             return redirect('payment_area', order_id=order.id)
@@ -237,7 +278,112 @@ def payment_area(request, order_id):
     order = get_object_or_404(Order, id=order_id)
     if request.user != order.customer and request.user != order.restaurant.owner and not request.user.is_superuser:
         return redirect('restaurant_list')
-    return render(request, 'payment_area.html', {'order': order})
+
+    # Gera preferência no MercadoPago se token configurado
+    mp_data = None
+    mp_configured = bool(getattr(import_settings(), 'MERCADOPAGO_ACCESS_TOKEN', ''))
+    if mp_configured and order.status == 'PENDING':
+        try:
+            mp_data = PaymentService.create_preference(order, request)
+        except Exception as e:
+            logger.error(f'Erro MercadoPago: {e}')
+
+    return render(request, 'payment_area.html', {
+        'order': order,
+        'mp_data': mp_data,
+        'mp_configured': mp_configured,
+        'mp_public_key': getattr(import_settings(), 'MERCADOPAGO_PUBLIC_KEY', ''),
+    })
+
+
+def import_settings():
+    from django.conf import settings
+    return settings
+
+
+# ── CALLBACKS MERCADOPAGO ─────────────────────────────────────────────
+@login_required
+def payment_success(request, order_id):
+    order = get_object_or_404(Order, id=order_id)
+    payment_id = request.GET.get('payment_id', '')
+    collection_status = request.GET.get('collection_status', '')
+
+    if collection_status == 'approved':
+        old_status = order.status
+        order.status = 'PAID'
+        order.payment_id = payment_id
+        order.paid_at = timezone.now()
+        order.save()
+
+        OrderStatusLog.objects.create(
+            order=order,
+            old_status=old_status,
+            new_status='PAID',
+            message=f'Pagamento aprovado via MercadoPago. ID: {payment_id}'
+        )
+        try:
+            EmailService.order_status_changed(order, old_status)
+        except Exception:
+            pass
+        messages.success(request, '✅ Pagamento aprovado! Seu pedido está confirmado.')
+    else:
+        messages.warning(request, 'Pagamento pendente. Aguardando confirmação.')
+
+    return redirect('order_detail', pk=order.id)
+
+
+@login_required
+def payment_failure(request, order_id):
+    order = get_object_or_404(Order, id=order_id)
+    messages.error(request, '❌ Pagamento recusado. Tente novamente ou escolha outro método.')
+    return redirect('payment_area', order_id=order.id)
+
+
+@login_required
+def payment_pending(request, order_id):
+    order = get_object_or_404(Order, id=order_id)
+    messages.info(request, '⏳ Pagamento pendente. Você receberá um email quando for confirmado.')
+    return redirect('order_detail', pk=order.id)
+
+
+@csrf_exempt
+def mercadopago_webhook(request):
+    """Webhook do MercadoPago para notificações assíncronas de pagamento."""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'ok'})
+    try:
+        data = json.loads(request.body)
+        topic = data.get('type') or request.GET.get('topic', '')
+
+        if topic == 'payment':
+            payment_id = data.get('data', {}).get('id') or request.GET.get('id')
+            if payment_id:
+                payment_info = PaymentService.get_payment_info(str(payment_id))
+                external_ref = payment_info.get('external_reference')
+                status_mp = payment_info.get('status')
+
+                if external_ref and status_mp == 'approved':
+                    try:
+                        order = Order.objects.get(id=int(external_ref))
+                        if order.status == 'PENDING':
+                            old_status = order.status
+                            order.status = 'PAID'
+                            order.payment_id = str(payment_id)
+                            order.paid_at = timezone.now()
+                            order.save()
+                            OrderStatusLog.objects.create(
+                                order=order,
+                                old_status=old_status,
+                                new_status='PAID',
+                                message=f'Aprovado via webhook MP. ID: {payment_id}'
+                            )
+                            EmailService.order_status_changed(order, old_status)
+                    except Order.DoesNotExist:
+                        pass
+    except Exception as e:
+        logger.error(f'Erro webhook MP: {e}')
+
+    return JsonResponse({'status': 'ok'})
 
 
 @login_required
@@ -260,10 +406,53 @@ def order_delete(request, pk):
 @login_required
 def order_update_status(request, pk):
     order = get_object_or_404(Order, pk=pk)
-    if request.method == 'POST' and request.user == order.restaurant.owner:
-        order.status = request.POST.get('status')
-        order.save()
+    if request.method == 'POST' and (request.user == order.restaurant.owner or request.user.is_superuser):
+        old_status = order.status
+        new_status_val = request.POST.get('status')
+
+        if old_status != new_status_val:
+            order.status = new_status_val
+            if new_status_val == 'PAID':
+                order.paid_at = timezone.now()
+            order.last_status_update = timezone.now()
+            order.save()
+
+            # Registrar histórico
+            OrderStatusLog.objects.create(
+                order=order,
+                old_status=old_status,
+                new_status=new_status_val,
+                changed_by=request.user,
+                message=f'Status atualizado por {request.user.username}'
+            )
+
+            # Notificar cliente por email
+            try:
+                EmailService.order_status_changed(order, old_status)
+            except Exception as e:
+                logger.error(f'Erro ao enviar email de status: {e}')
+
+            messages.success(request, f'Status atualizado para: {order.get_status_display()}')
+
+    # Suporte HTMX
+    if request.headers.get('HX-Request'):
+        return render(request, 'partials/order_status_badge.html', {'order': order})
+
     return redirect('order_detail', pk=pk)
+
+
+# ── STATUS EM TEMPO REAL (HTMX POLLING) ──────────────────────────────
+@login_required
+def order_status_check(request, pk):
+    """
+    Endpoint para o HTMX fazer polling e atualizar o badge de status.
+    O cliente consulta a cada 10 segundos para ver se o status mudou.
+    """
+    order = get_object_or_404(Order, pk=pk)
+    if request.user != order.customer and request.user != order.restaurant.owner and not request.user.is_superuser:
+        return JsonResponse({'error': 'forbidden'}, status=403)
+
+    return render(request, 'partials/order_status_badge.html', {'order': order})
 
 
 # =========================
@@ -288,9 +477,6 @@ def reservation_create(request, restaurant_id):
 @login_required
 def reservation_detail(request, pk):
     reservation = get_object_or_404(Reservation, pk=pk)
-    if request.method == 'POST' and request.user == reservation.restaurant.owner:
-        reservation.status = request.POST.get('status')
-        reservation.save()
     return render(request, 'reservation_detail.html', {'reservation': reservation})
 
 

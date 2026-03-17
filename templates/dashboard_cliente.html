@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% block title %}Meus Pedidos — OrderUP{% endblock %}
+{% block content %}
+<div class="dash-header">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+    <span class="profile-chip chip-cliente"><i class="bi bi-person-fill"></i> Cliente</span>
+  </div>
+  <h1 class="dash-title">Olá, {{ user.first_name|default:user.username }}! 🍕</h1>
+  <p style="color:var(--muted);font-size:14px">Acompanhe seus pedidos e reservas aqui.</p>
+</div>
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#fff0f0"><i class="bi bi-bag-fill" style="color:var(--red)"></i></div>
+    <div class="stat-num">{{ total_vendas }}</div>
+    <div class="stat-label">Pedidos feitos</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#fff7ed"><i class="bi bi-clock-fill" style="color:#f59e0b"></i></div>
+    <div class="stat-num">{{ aguardando_pagamento }}</div>
+    <div class="stat-label">Pendentes</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#f0fdf4"><i class="bi bi-calendar-check" style="color:#22c55e"></i></div>
+    <div class="stat-num">{{ reservations.count }}</div>
+    <div class="stat-label">Reservas</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#eff6ff"><i class="bi bi-currency-dollar" style="color:#3b82f6"></i></div>
+    <div class="stat-num" style="font-size:22px">R$ {{ total_faturado|floatformat:2 }}</div>
+    <div class="stat-label">Total gasto</div>
+  </div>
+</div>
+
+<div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap">
+  <a href="{% url 'restaurant_list' %}" class="btn-red"><i class="bi bi-bag-plus-fill"></i> Fazer pedido</a>
+</div>
+
+<!-- Meus pedidos -->
+<div class="dash-card">
+  <div class="dash-card-title"><i class="bi bi-bag-check" style="color:var(--red)"></i> Meus pedidos</div>
+  {% if orders %}
+  <table class="table-orderup">
+    <thead><tr><th>#</th><th>Restaurante</th><th>Total</th><th>Tipo</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      {% for order in orders %}
+      <tr>
+        <td style="font-weight:700;color:var(--red)">#{{ order.id }}</td>
+        <td>{{ order.restaurant.name }}</td>
+        <td style="font-weight:700">R$ {{ order.total|floatformat:2 }}</td>
+        <td><span style="font-size:12px">{{ order.get_order_type_display }}</span></td>
+        <td>
+          <span class="badge-status badge-{{ order.status|lower }}">{{ order.get_status_display }}</span>
+        </td>
+        <td>
+          <a href="{% url 'order_detail' order.pk %}" class="btn-gray" style="font-size:12px;padding:6px 12px">Detalhes</a>
+          {% if order.status == 'PENDING' %}
+          <a href="{% url 'payment_area' order.id %}" class="btn-red" style="font-size:12px;padding:6px 12px">Pagar</a>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div style="text-align:center;padding:48px 20px">
+    <div style="font-size:48px;margin-bottom:12px">🍽</div>
+    <h3 style="font-size:18px;font-weight:700;margin-bottom:8px">Nenhum pedido ainda</h3>
+    <p style="color:var(--muted);margin-bottom:20px">Explore nossos restaurantes e faça seu primeiro pedido!</p>
+    <a href="{% url 'restaurant_list' %}" class="btn-red">Ver restaurantes</a>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Reservas -->
+<div class="dash-card">
+  <div class="dash-card-title"><i class="bi bi-calendar-check" style="color:var(--red)"></i> Minhas reservas</div>
+  {% if reservations %}
+  <table class="table-orderup">
+    <thead><tr><th>Restaurante</th><th>Data</th><th>Hora</th><th>Pessoas</th><th>Observação</th></tr></thead>
+    <tbody>
+      {% for res in reservations %}
+      <tr>
+        <td style="font-weight:600">{{ res.restaurant.name }}</td>
+        <td>{{ res.date|date:"d/m/Y" }}</td>
+        <td>{{ res.time|time:"H:i" }}</td>
+        <td>{{ res.number_of_people }}</td>
+        <td style="color:var(--muted);font-size:13px">{{ res.observation|default:"—"|truncatechars:40 }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:var(--muted);text-align:center;padding:24px">Nenhuma reserva ainda.</p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}Reserva — OrderUP{% endblock %}
+{% block content %}
+<div class="form-card">
+  <h2>Reserva #{{ reservation.id }}</h2>
+  <p>{{ reservation.restaurant.name }}</p>
+  <div style="display:grid;gap:12px;margin-top:20px">
+    <div style="display:flex;justify-content:space-between;padding:12px;background:#f7f7f9;border-radius:10px">
+      <span style="color:var(--muted);font-size:14px">Data</span>
+      <strong>{{ reservation.date|date:"d/m/Y" }}</strong>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:12px;background:#f7f7f9;border-radius:10px">
+      <span style="color:var(--muted);font-size:14px">Hora</span>
+      <strong>{{ reservation.time|time:"H:i" }}</strong>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:12px;background:#f7f7f9;border-radius:10px">
+      <span style="color:var(--muted);font-size:14px">Pessoas</span>
+      <strong>{{ reservation.number_of_people }}</strong>
+    </div>
+    {% if reservation.observation %}
+    <div style="padding:12px;background:#f7f7f9;border-radius:10px">
+      <span style="color:var(--muted);font-size:14px;display:block;margin-bottom:4px">Observação</span>
+      <p style="font-size:14px;margin:0">{{ reservation.observation }}</p>
+    </div>
+    {% endif %}
+  </div>
+  <a href="{% url 'my_dashboard' %}" class="btn-red" style="width:100%;justify-content:center;padding:14px;margin-top:20px">Voltar ao painel</a>
+</div>
+{% endblock %}

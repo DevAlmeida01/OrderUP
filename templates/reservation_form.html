@@ -1,64 +1,25 @@
 {% extends 'base.html' %}
-
+{% block title %}Reservar Mesa — OrderUP{% endblock %}
 {% block content %}
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card shadow-lg border-0 rounded-4">
-                
-                <!-- CABEÇALHO PREMIUM -->
-                <div class="card-header bg-dark text-white py-3 text-center rounded-top-4">
-                    <h4 class="mb-0">📅 Fazer Reserva</h4>
-                </div>
-                
-                <div class="card-body p-4 p-md-5">
-                    <form method="post">
-                        {% csrf_token %}
-
-                        <!-- CAMPOS MANUAIS (Sua Lógica) -->
-                        <div class="mb-3">
-                            <label class="form-label fw-bold text-muted">{{ form.date.label }}</label>
-                            {{ form.date }}
-                        </div>
-
-                        {% if form.time %}
-                        <div class="mb-3">
-                            <label class="form-label fw-bold text-muted">{{ form.time.label }}</label>
-                            {{ form.time }}
-                        </div>
-                        {% endif %}
-
-                        {% if form.guests %}
-                        <div class="mb-3">
-                            <label class="form-label fw-bold text-muted">{{ form.guests.label }}</label>
-                            {{ form.guests }}
-                        </div>
-                        {% endif %}
-
-                        <!-- LOOP DE SEGURANÇA: Renderiza outros campos do models (ex: observação) -->
-                        {% for field in form %}
-                            {% if field.name not in 'date,time,guests' %}
-                            <div class="mb-3">
-                                <label class="form-label fw-bold text-muted">{{ field.label }}</label>
-                                {{ field }}
-                            </div>
-                            {% endif %}
-                        {% endfor %}
-
-                        <!-- BOTÕES -->
-                        <div class="d-grid gap-2 mt-5">
-                            <button type="submit" class="btn btn-primary btn-lg fw-bold">
-                                ✔ Confirmar Reserva
-                            </button>
-                            <a href="{% url 'restaurant_list' %}" class="btn btn-outline-secondary btn-lg">
-                                Cancelar
-                            </a>
-                        </div>
-                        
-                    </form>
-                </div>
-            </div>
-        </div>
+<div class="form-card">
+  <div style="margin-bottom:24px">
+    <div style="font-size:32px;margin-bottom:12px">📅</div>
+    <h2>Reservar mesa</h2>
+    <p>Preencha os dados da sua reserva</p>
+  </div>
+  <form method="post">
+    {% csrf_token %}
+    {% for field in form %}
+    <div class="form-group">
+      <label class="form-label-modern">{{ field.label }}</label>
+      {{ field }}
+      {% if field.errors %}<span style="color:var(--red);font-size:12px">{{ field.errors|join:", " }}</span>{% endif %}
     </div>
+    {% endfor %}
+    <div style="display:flex;gap:10px">
+      <button type="submit" class="btn-red" style="flex:1;justify-content:center;padding:14px"><i class="bi bi-calendar-check"></i> Confirmar reserva</button>
+      <a href="javascript:history.back()" class="btn-gray" style="padding:14px">Cancelar</a>
+    </div>
+  </form>
 </div>
 {% endblock %}

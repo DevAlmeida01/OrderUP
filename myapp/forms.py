@@ -155,3 +155,63 @@ class ContactForm(forms.ModelForm):
                 'placeholder': 'Digite sua mensagem'
             }),
         }
+
+# =========================
+# ENDEREÇO DE ENTREGA
+# =========================
+class DeliveryAddressForm(forms.Form):
+    delivery_address = forms.CharField(
+        max_length=300,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control-modern',
+            'placeholder': 'Rua, número',
+            'id': 'id_delivery_address',
+        }),
+        label='Endereço'
+    )
+    delivery_complement = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control-modern',
+            'placeholder': 'Apartamento, bloco (opcional)',
+        }),
+        label='Complemento'
+    )
+    delivery_neighborhood = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control-modern',
+            'placeholder': 'Bairro',
+        }),
+        label='Bairro'
+    )
+    delivery_city = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control-modern',
+            'placeholder': 'Cidade',
+        }),
+        label='Cidade'
+    )
+    delivery_cep = forms.CharField(
+        max_length=10,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control-modern',
+            'placeholder': '00000-000',
+            'id': 'id_delivery_cep',
+        }),
+        label='CEP'
+    )
+    delivery_phone = forms.CharField(
+        max_length=20,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control-modern',
+            'placeholder': '(71) 99999-9999',
+        }),
+        label='Telefone para entrega'
+    )

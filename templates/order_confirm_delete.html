@@ -1,22 +1,12 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6 text-center">
-            <div class="card shadow-lg border-danger rounded-4">
-                <div class="card-body p-5">
-                    <h1 class="display-1 text-danger mb-3">🗑️</h1>
-                    <h3 class="fw-bold">Cancelar Pedido?</h3>
-                    <p class="text-muted">Você está prestes a cancelar/excluir o pedido <strong>#{{ order.id }}</strong>. Tem certeza disso?</p>
-                    
-                    <form method="POST" class="mt-4">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-danger btn-lg me-2">Sim, Cancelar Pedido</button>
-                        <a href="javascript:history.back()" class="btn btn-secondary btn-lg">Voltar</a>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
+<div class="form-card" style="text-align:center">
+  <div style="font-size:48px;margin-bottom:16px">⚠️</div>
+  <h2>Cancelar pedido #{{ order.id }}?</h2>
+  <form method="post" style="display:flex;gap:10px;justify-content:center;margin-top:24px">
+    {% csrf_token %}
+    <button type="submit" style="background:var(--red);color:#fff;border:none;padding:12px 24px;border-radius:10px;font-weight:600;cursor:pointer">Cancelar pedido</button>
+    <a href="{% url 'order_detail' order.pk %}" class="btn-gray">Voltar</a>
+  </form>
 </div>
 {% endblock %}
